@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ueba_db
+      POSTGRES_USER: ueba_app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_local_only}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - ueba_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ueba_app -d ueba_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ueba_postgres_data:
