@@ -1,0 +1,18 @@
+{
+  "model": "IsolationForest",
+  "dataset": "synthetic",
+  "training_ratio": 0.8,
+  "contamination": 0.05,
+  "test_events": 305,
+  "actual_anomalies": 30,
+  "predicted_anomalies": 51,
+  "true_positives": 26,
+  "false_positives": 25,
+  "false_negatives": 4,
+  "true_negatives": 250,
+  "precision": 0.5098,
+  "recall": 0.8667,
+  "f1_score": 0.642,
+  "accuracy": 0.9049,
+  "warning": "Synthetic-data metrics only; they do not establish real-world security detection performance."
+}

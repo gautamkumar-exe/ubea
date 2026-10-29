@@ -8,7 +8,6 @@ import numpy as np
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
-
 FEATURE_NAMES = (
     "hour_sin",
     "hour_cos",
@@ -16,6 +15,7 @@ FEATURE_NAMES = (
     "is_known_ip",
     "is_known_event_type",
     "user_event_frequency",
+    "source_ip_frequency",
 )
 
 
@@ -39,7 +39,6 @@ class MLAnomalyDetector:
         self.is_fitted = False
 
     def fit(self, training_data: Sequence[Sequence[float]]) -> None:
-        """Train on historical, representative normal-behavior features."""
         X = np.asarray(training_data, dtype=float)
 
         if X.ndim != 2 or X.shape[1] != len(FEATURE_NAMES):
@@ -61,7 +60,6 @@ class MLAnomalyDetector:
         self.is_fitted = True
 
     def score(self, features: Sequence[float]) -> dict:
-        """Return an anomaly prediction and a relative anomaly score."""
         if not self.is_fitted:
             raise RuntimeError("Train the detector before scoring events")
 

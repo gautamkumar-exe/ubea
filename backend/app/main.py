@@ -9,6 +9,7 @@ from app.api.routes.events import router as events_router
 from app.api.routes.anomalies import router as anomalies_router
 from app.api.routes.alerts import router as alerts_router
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.routes.feedback import router as feedback_router
 
 
 app = FastAPI(title=settings.app_name)
@@ -26,6 +27,8 @@ app.include_router(anomalies_router)
 app.include_router(events_router)
 app.include_router(baselines_router)
 app.include_router(alerts_router)
+app.include_router(feedback_router)
+from app.api.routes.feedback import router as feedback_router
 
 @app.get("/health")
 def health_check():

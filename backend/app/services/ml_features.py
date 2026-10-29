@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from typing import Sequence
 
@@ -13,7 +14,6 @@ from app.services.ml_anomaly import FEATURE_NAMES
 
 
 def _as_utc(value: datetime) -> datetime:
-    """Normalize a timestamp to UTC, including legacy naive timestamps."""
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
@@ -23,12 +23,7 @@ def features_for_event(
     event: SecurityEvent,
     history: Sequence[SecurityEvent],
 ) -> list[float]:
-    """
-    Extract features using only events that occurred before this event.
-
-    history must not contain the event being scored or events at/after
-    its timestamp. This prevents direct target-event leakage.
-    """
+    """Build event features using strictly earlier events only."""
     event_time = _as_utc(event.event_time)
 
     prior_events = [
@@ -54,7 +49,19 @@ def features_for_event(
     recent_event_count = sum(
         1
         for previous in prior_events
-        if _as_utc(previous.event_time) >= window_start
+        if window_start <= _as_utc(previous.event_time) < event_time
+    )
+
+    ip_counts = Counter(
+        previous.source_ip
+        for previous in prior_events
+        if previous.source_ip
+    )
+
+    ip_frequency = (
+        math.log1p(ip_counts[event.source_ip])
+        if event.source_ip
+        else 0.0
     )
 
     features = [
@@ -64,6 +71,7 @@ def features_for_event(
         float(bool(event.source_ip and event.source_ip in known_ips)),
         float(event.event_type in known_event_types),
         math.log1p(recent_event_count),
+        ip_frequency,
     ]
 
     if len(features) != len(FEATURE_NAMES):
@@ -73,7 +81,6 @@ def features_for_event(
 
 
 def get_event_features(db: Session, event_id) -> list[float]:
-    """Load one event and its strictly earlier user events."""
     event = db.get(SecurityEvent, event_id)
 
     if event is None:
@@ -100,12 +107,6 @@ def get_historical_training_features(
     before_event: SecurityEvent,
     limit: int = 500,
 ) -> list[list[float]]:
-    """
-    Build training rows from earlier events only.
-
-    Each training event is represented using only events preceding it.
-    The target event and events at/after its timestamp are excluded.
-    """
     if limit < 1:
         raise ValueError("limit must be at least 1")
 
