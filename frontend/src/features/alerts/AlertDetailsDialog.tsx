@@ -22,9 +22,10 @@ interface AlertDetailsDialogProps {
   alert: Alert;
   onClose: () => void;
   onStatusChange: (alert: Alert, status: AlertStatus) => Promise<void>;
+  onAskAi?: (alertId: string) => void;
 }
 
-export function AlertDetailsDialog({ alert, onClose, onStatusChange }: AlertDetailsDialogProps) {
+export function AlertDetailsDialog({ alert, onClose, onStatusChange, onAskAi }: AlertDetailsDialogProps) {
   const [feedback, setFeedback] = useState<AnalystFeedback[]>([]);
   const [feedbackTotal, setFeedbackTotal] = useState(0);
   const [feedbackLoading, setFeedbackLoading] = useState(true);
@@ -139,6 +140,8 @@ export function AlertDetailsDialog({ alert, onClose, onStatusChange }: AlertDeta
               <pre className="code-output">{JSON.stringify(alert.evidence ?? {}, null, 2)}</pre>
             </div>
           </div>
+
+          {onAskAi && <div className="event-detail-actions"><button type="button" className="button button--primary" onClick={() => onAskAi(alert.id)}>Ask AI SOC Assistant about this alert</button></div>}
 
           <section className="detail-section">
             <div className="detail-section__heading"><div><div className="eyebrow">CASE MANAGEMENT</div><h3>Investigation status</h3></div></div>

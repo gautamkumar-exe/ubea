@@ -21,6 +21,7 @@ import { AnalyticsFeature } from "./AnalyticsFeature";
 interface UserAnalyticsFeatureProps {
   initialEventId: string;
   onAnalysisComplete: () => void;
+  onAskAi?: (type: "alert" | "event", id: string) => void;
 }
 
 interface DiscoveryState {
@@ -50,7 +51,7 @@ function CountTable({ label, values, emptyMessage }: { label: string; values: Ar
   );
 }
 
-export function UserAnalyticsFeature({ initialEventId, onAnalysisComplete }: UserAnalyticsFeatureProps) {
+export function UserAnalyticsFeature({ initialEventId, onAnalysisComplete, onAskAi }: UserAnalyticsFeatureProps) {
   const [discovery, setDiscovery] = useState<DiscoveryState>({ users: [], loading: true, error: "", eventTotal: 0, alertTotal: 0 });
   const [userInput, setUserInput] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
@@ -311,8 +312,8 @@ export function UserAnalyticsFeature({ initialEventId, onAnalysisComplete }: Use
 
       <AnalyticsFeature initialEventId={analysisEventId} onAnalysisComplete={onAnalysisComplete} />
 
-      {selectedAlert && <AlertDetailsDialog alert={selectedAlert} onClose={() => setSelectedAlert(null)} onStatusChange={handleStatusChange} />}
-      {selectedEvent && <EventDetailsDialog event={selectedEvent} onClose={() => setSelectedEvent(null)} onAnalyze={() => { setAnalysisEventId(selectedEvent.id); setSelectedEvent(null); }} />}
+      {selectedAlert && <AlertDetailsDialog alert={selectedAlert} onClose={() => setSelectedAlert(null)} onStatusChange={handleStatusChange} onAskAi={(alertId) => onAskAi?.("alert", alertId)} />}
+      {selectedEvent && <EventDetailsDialog event={selectedEvent} onClose={() => setSelectedEvent(null)} onAnalyze={() => { setAnalysisEventId(selectedEvent.id); setSelectedEvent(null); }} onAskAi={(eventId) => onAskAi?.("event", eventId)} />}
     </div>
   );
 }

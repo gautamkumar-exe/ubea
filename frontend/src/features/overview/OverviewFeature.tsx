@@ -19,6 +19,7 @@ interface OverviewFeatureProps {
   onDataChanged: () => void;
   onNavigateToAlerts: () => void;
   onNavigateToEvents: () => void;
+  onAskAi?: (alertId: string) => void;
 }
 
 interface GlobalAlertMetrics {
@@ -227,7 +228,7 @@ function RecentEvents({ data, loading, refreshing, error, onRetry, onNavigate }:
   );
 }
 
-export function OverviewFeature({ refreshToken, onDataChanged, onNavigateToAlerts, onNavigateToEvents }: OverviewFeatureProps) {
+export function OverviewFeature({ refreshToken, onDataChanged, onNavigateToAlerts, onNavigateToEvents, onAskAi }: OverviewFeatureProps) {
   const [severityFilter, setSeverityFilter] = useState<AlertSeverity | "all">("all");
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
 
@@ -345,7 +346,7 @@ export function OverviewFeature({ refreshToken, onDataChanged, onNavigateToAlert
         onNavigate={onNavigateToEvents}
       />
 
-      {selectedAlert && <AlertDetailsDialog alert={selectedAlert} onClose={() => setSelectedAlert(null)} onStatusChange={handleStatusChange} />}
+      {selectedAlert && <AlertDetailsDialog alert={selectedAlert} onClose={() => setSelectedAlert(null)} onStatusChange={handleStatusChange} onAskAi={onAskAi} />}
     </div>
   );
 }

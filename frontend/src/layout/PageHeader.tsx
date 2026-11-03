@@ -26,6 +26,11 @@ const PAGE_META: Record<WorkspacePage, { eyebrow: string; title: string; descrip
     title: "ML Analytics",
     description: "Run the synthetic Isolation Forest demonstration and inspect its experimental evaluation.",
   },
+  "ai-assistant": {
+    eyebrow: "INVESTIGATION / AI SOC ASSISTANT",
+    title: "AI SOC Assistant",
+    description: "Ask evidence-grounded questions about security alerts and events. All recommendations require analyst review.",
+  },
 };
 
 interface PageHeaderProps {

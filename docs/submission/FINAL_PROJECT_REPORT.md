@@ -140,7 +140,7 @@ Key modules:
 
 ## 11. Frontend architecture
 
-`frontend/src/App.tsx` uses React component state to select the active page; navigation is not URL-router based. The sidebar exposes Overview, Security Alerts, User Analytics, Events, and a functional synthetic-only ML Analytics page. AI SOC Assistant remains “Planned / Not connected.” The feature components call functions in `frontend/src/api.ts`. The API base defaults to `http://127.0.0.1:8001` and can be overridden at build/dev time by `VITE_API_BASE_URL`.
+`frontend/src/App.tsx` uses React component state to select the active page; navigation is not URL-router based. The sidebar exposes Overview, Security Alerts, User Analytics, Events, a functional synthetic-only ML Analytics page, and AI SOC Assistant. The assistant uses backend-configured OpenAI Responses API chat with bounded read-only context and is separate from rule-based detection. The feature components call functions in `frontend/src/api.ts`. The API base defaults to `http://127.0.0.1:8001` and can be overridden at build/dev time by `VITE_API_BASE_URL`.
 
 | Component | Role |
 | --- | --- |

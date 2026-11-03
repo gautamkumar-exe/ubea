@@ -1,4 +1,4 @@
-export type WorkspacePage = "overview" | "alerts" | "events" | "analytics" | "ml";
+export type WorkspacePage = "overview" | "alerts" | "events" | "analytics" | "ml" | "ai-assistant";
 
 interface SidebarProps {
   activePage: WorkspacePage;
@@ -16,11 +16,10 @@ const NAV_ITEMS: { id: WorkspacePage; label: string; icon: string }[] = [
   { id: "analytics", label: "User Analytics", icon: "◎" },
   { id: "events", label: "Events", icon: "⌁" },
   { id: "ml", label: "ML Analytics", icon: "◌" },
+  { id: "ai-assistant", label: "AI SOC Assistant", icon: "✳" },
 ];
 
-const PLANNED_ITEMS = [
-  { label: "AI SOC Assistant", icon: "✳" },
-];
+const PLANNED_ITEMS: { label: string; icon: string }[] = [];
 
 export function Sidebar({
   activePage,
@@ -74,7 +73,7 @@ export function Sidebar({
           </button>
         ))}
 
-        <div className="sidebar__planned" aria-label="Planned capabilities">
+        {PLANNED_ITEMS.length > 0 && <div className="sidebar__planned" aria-label="Planned capabilities">
           <span className="sidebar__label">Planned</span>
           {PLANNED_ITEMS.map((item) => (
             <button
@@ -92,7 +91,7 @@ export function Sidebar({
               </span>
             </button>
           ))}
-        </div>
+        </div>}
       </nav>
 
       <div className="sidebar__footer">

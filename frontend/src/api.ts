@@ -180,6 +180,23 @@ export interface MLAnalyticsDemo {
   warning: string;
 }
 
+export type AssistantMode = "general" | "explain_alert" | "incident_summary";
+export type AssistantContextType = "alert" | "event";
+export interface AssistantHistoryMessage { role: "user" | "assistant"; content: string; }
+export interface AssistantStatus {
+  configured: boolean;
+  api_key_available: boolean;
+  model: string | null;
+  availability_status: "available" | "not_configured";
+}
+export interface AssistantChatResponse {
+  response: string;
+  context_references: Array<{ type: "alert" | "event" | "related_event"; id: string; status: "available" | "not_found" }>;
+  context_types_used: string[];
+  security_context_available: boolean;
+  model: string;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -208,6 +225,24 @@ export function getHealth(): Promise<HealthResponse> {
 
 export function runMLAnalyticsDemo(signal?: AbortSignal): Promise<MLAnalyticsDemo> {
   return request<MLAnalyticsDemo>("/ml-analytics/demo", { signal, cache: "no-store" });
+}
+
+export function getAssistantStatus(signal?: AbortSignal): Promise<AssistantStatus> {
+  return request<AssistantStatus>("/ai-assistant/status", { signal, cache: "no-store" });
+}
+
+export function sendAssistantMessage(payload: {
+  message: string;
+  mode: AssistantMode;
+  alert_id?: string;
+  event_id?: string;
+  history: AssistantHistoryMessage[];
+}, signal?: AbortSignal): Promise<AssistantChatResponse> {
+  return request<AssistantChatResponse>("/ai-assistant/chat", {
+    method: "POST",
+    body: JSON.stringify(payload),
+    signal,
+  });
 }
 
 export function getAlerts(

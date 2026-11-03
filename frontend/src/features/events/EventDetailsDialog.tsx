@@ -6,9 +6,10 @@ interface EventDetailsDialogProps {
   event: SecurityEvent;
   onClose: () => void;
   onAnalyze: () => void;
+  onAskAi?: (eventId: string) => void;
 }
 
-export function EventDetailsDialog({ event, onClose, onAnalyze }: EventDetailsDialogProps) {
+export function EventDetailsDialog({ event, onClose, onAnalyze, onAskAi }: EventDetailsDialogProps) {
   useEffect(() => {
     const handleKeyDown = (keyboardEvent: KeyboardEvent) => {
       if (keyboardEvent.key === "Escape") onClose();
@@ -63,6 +64,7 @@ export function EventDetailsDialog({ event, onClose, onAnalyze }: EventDetailsDi
 
           <div className="event-detail-actions">
             <button type="button" className="button button--primary" onClick={onAnalyze}>Analyze this event</button>
+            {onAskAi && <button type="button" className="button button--secondary" onClick={() => onAskAi(event.id)}>Ask AI SOC Assistant</button>}
           </div>
         </div>
       </section>

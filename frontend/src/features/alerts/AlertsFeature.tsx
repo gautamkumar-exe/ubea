@@ -15,6 +15,7 @@ import { errorMessage } from "../../lib/format";
 interface AlertsFeatureProps {
   mode: "overview" | "alerts";
   refreshToken: number;
+  onAskAi?: (alertId: string) => void;
 }
 
 const STATUSES: AlertStatus[] = ["open", "investigating", "resolved", "dismissed"];
@@ -22,7 +23,7 @@ const SEVERITIES: AlertSeverity[] = ["critical", "high", "medium", "low"];
 const PAGE_SIZE = 50;
 const REFRESH_INTERVAL_MS = 15_000;
 
-export function AlertsFeature({ mode, refreshToken }: AlertsFeatureProps) {
+export function AlertsFeature({ mode, refreshToken, onAskAi }: AlertsFeatureProps) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loadedKey, setLoadedKey] = useState("");
   const [serverTotal, setServerTotal] = useState(0);
@@ -219,7 +220,7 @@ export function AlertsFeature({ mode, refreshToken }: AlertsFeatureProps) {
         </footer>
       </section>
 
-      {selectedAlert && <AlertDetailsDialog alert={selectedAlert} onClose={() => setSelectedAlert(null)} onStatusChange={handleStatusChange} />}
+      {selectedAlert && <AlertDetailsDialog alert={selectedAlert} onClose={() => setSelectedAlert(null)} onStatusChange={handleStatusChange} onAskAi={onAskAi} />}
     </div>
   );
 }

@@ -112,13 +112,14 @@ erDiagram
 
 ## Frontend components
 
-`App.tsx` owns state-driven page navigation and global refresh. The `Sidebar` entries are Overview, Security Alerts, User Analytics, Events, and ML Analytics; AI SOC Assistant remains disabled/planned. `PageHeader` describes the active page and invokes refresh. Page components use typed functions in `frontend/src/api.ts`.
+`App.tsx` owns state-driven page navigation and global refresh. The `Sidebar` entries are Overview, Security Alerts, User Analytics, Events, ML Analytics, and AI SOC Assistant. `PageHeader` describes the active page and invokes refresh. Page components use typed functions in `frontend/src/api.ts`.
 
 - Overview calls filtered alert list requests to obtain global response totals and displays latest alerts and events.
 - Alerts supports backend severity/status filtering and text search within the currently loaded page, then opens the alert investigation dialog.
 - Events supports only backend-provided event filters and pagination. It can open details or navigate to User Analytics to explicitly analyze a stored event.
 - User Analytics suggests identifiers found in up to 100 returned events and alerts (not a complete directory), reads/rebuilds a baseline, shows related event/alert pages, and displays rule-analysis results.
 - ML Analytics calls `GET /ml-analytics/demo` only when requested and displays synthetic model/demo/evaluation values. The endpoint has no database dependency and creates no artifacts or alerts.
+- AI SOC Assistant calls the backend OpenAI Responses API with bounded, read-only selected alert/event context. It is advisory and does not change operational records.
 
 ## Offline experimental ML workflow
 

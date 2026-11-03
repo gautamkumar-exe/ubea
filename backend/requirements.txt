@@ -8,3 +8,4 @@ alembic
 pytest
 httpx
 scikit-learn
+openai>=1.66.0,<3.0.0

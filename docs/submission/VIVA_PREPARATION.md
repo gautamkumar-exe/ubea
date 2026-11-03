@@ -210,7 +210,7 @@ React builds the interface from reusable components and state. TypeScript gives 
 
 ### 50. What does the ML Analytics page do, and what remains planned?
 
-The ML Analytics page calls `GET /ml-analytics/demo`, which reads the bundled synthetic fixture, fits the existing experiment in memory, and returns four demo cases plus held-out synthetic benchmark metrics. It does not use live events or create alerts. AI SOC Assistant remains “Planned / Not connected.”
+The ML Analytics page calls `GET /ml-analytics/demo`, which reads the bundled synthetic fixture, fits the existing experiment in memory, and returns four demo cases plus held-out synthetic benchmark metrics. It does not use live events or create alerts. AI SOC Assistant uses `GET /ai-assistant/status` and `POST /ai-assistant/chat` for advisory, evidence-grounded chat; it is configured by backend environment variables and is not an automatic detection or response system.
 
 ### 51. Why are ML predictions not connected to operational alerts?
 

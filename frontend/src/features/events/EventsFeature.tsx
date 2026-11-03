@@ -12,6 +12,7 @@ import { EventDetailsDialog } from "./EventDetailsDialog";
 interface EventsFeatureProps {
   refreshToken: number;
   onAnalyzeEvent: (eventId: string) => void;
+  onAskAi?: (eventId: string) => void;
 }
 
 interface EventFilters {
@@ -65,7 +66,7 @@ function EventsSection({ children, eyebrow, title, description, action, classNam
   );
 }
 
-export function EventsFeature({ refreshToken, onAnalyzeEvent }: EventsFeatureProps) {
+export function EventsFeature({ refreshToken, onAnalyzeEvent, onAskAi }: EventsFeatureProps) {
   const [eventsState, setEventsState] = useState<EventsResourceState>({
     response: null,
     responseKey: "",
@@ -292,7 +293,7 @@ export function EventsFeature({ refreshToken, onAnalyzeEvent }: EventsFeaturePro
         {success && <div className="inline-message inline-message--success" role="status">{success}</div>}
       </EventsSection>
 
-      {selectedEvent && <EventDetailsDialog event={selectedEvent} onClose={() => setSelectedEvent(null)} onAnalyze={() => onAnalyzeEvent(selectedEvent.id)} />}
+      {selectedEvent && <EventDetailsDialog event={selectedEvent} onClose={() => setSelectedEvent(null)} onAnalyze={() => onAnalyzeEvent(selectedEvent.id)} onAskAi={onAskAi} />}
     </div>
   );
 }
