@@ -55,24 +55,39 @@ Pearson correlations on all fixture rows:
 | `hour_sin` / `hour_cos` | -0.588 |
 | `user_event_frequency` / `source_ip_frequency` | 0.200 |
 
-The strongest overlap is structural: with valid identity and IP data, `is_known_ip` is exactly the indicator that the prior IP count is positive, while `source_ip_frequency` is `log1p` of that same count. The two features are therefore redundant in information content even though the nonlinear transform makes Pearson correlation less than one. The hour pair is also deliberately related: both coordinates jointly encode a circular value. Linear correlation alone is not a reason to remove one coordinate.
+The strongest overlap is structural: with valid identity and IP data, `is_known_ip` is exactly the indicator that the prior IP count is positive, while `source_ip_frequency` is `log1p` of that count. They share the novelty signal, but frequency retains count magnitude after the first observation; they are related rather than strictly identical. The hour pair is also deliberately related: both coordinates jointly encode a circular value. Linear correlation alone is not a reason to remove one coordinate.
 
 `is_known_event_type` is near-constant in this generated dataset, so it contributes little discrimination here. Its value could differ materially on sources with changing event vocabularies. `is_login` is not a validated authentication feature: it is a case-insensitive substring check on `event_type`. Authentication success/failure is not represented.
 
 ## Behavior, missingness, and implementation consistency
 
 - The seven inputs do not include user IDs, event IDs, timestamps, or the `scenario` label. User identity affects feature construction by scoping history, rather than being passed into Isolation Forest.
-- `hour_sin`/`hour_cos`, known-type/IP flags, and event counts can represent point-in-time behavior when history is strictly earlier and scoped to the same user. The current helper filters history by event time; the snapshot builder additionally prevents equal-time events from influencing one another.
+- `hour_sin`/`hour_cos`, known-type/IP flags, and event counts represent point-in-time behavior from strictly earlier, same-user history. Equal-time events cannot influence peers, and duplicate `(source, external_id)` history identities are counted once where that identity exists.
 - `user_event_frequency` uses a trailing 24-hour window. `source_ip_frequency` is cumulative over the available history. Different effective windows make the magnitudes hard to compare and cumulative counts can drift with account age or poisoned history.
-- The helper and snapshot feature builder do not have identical semantics. `features_for_event` uses raw IP strings and maps missing IP to zero familiarity/frequency; the snapshot builder canonicalizes IPs and records invalid/missing IP-derived values as unavailable. The helper computes hour using hour plus minute, while the snapshot path also uses seconds. The helper trusts callers to supply correctly scoped history; the snapshot builder scopes by user internally. These are reproducibility and inference-parity risks.
-- Snapshot rows with missing users have user-dependent features unavailable. Avoid treating unavailable as an ordinary zero. Current experiment training excludes any incomplete feature vector and reports the excluded-row counts.
+- Version `ueba-seven-v2` resolves the former parity differences through `backend/app/services/ml_feature_engine.py`, shared by `features_for_event` and the snapshot builder. It canonicalizes IPv4/IPv6, preserves seconds and microseconds after aware-time normalization to UTC, trims event types, strictly scopes history by user and time, and aligns equal-time behavior. Missing/malformed IP, missing user, and blank event type make the affected feature values unavailable (`None`) in both paths; a valid unfamiliar IP/type remains a real zero familiarity value.
+- The checked-in fixture contains canonical IP strings, no missing values, no subsecond timestamps, and properly scoped histories. Consequently, v2 produced the same fixture feature values and the same detection measurements as the v1 baseline. Parity fixes improve semantics for edge cases, not measured benchmark performance.
+- The experiment loader excludes any incomplete feature vector and records exclusions; it does not silently replace unavailable values with zero.
 - User identity is not a feature, but the temporal benchmark includes the same generated users in train and test. The separate leave-one-user-out analysis is needed to measure unseen-user behavior.
+
+## Overlapping-feature ablation
+
+For comparison, one column at a time was held constant at zero (or both IP columns together) without changing the Isolation Forest algorithm. Each variant used the same chronological split, five seeds, contamination 0.05, 100 estimators, and test-only final scoring. The threshold for the primary table below is the existing fixed zero rule.
+
+| Ablation | Mean test F1 across five seeds | F1 range | Mean test FPR | FPR range |
+|---|---:|---:|---:|---:|
+| Keep all seven (baseline and v2) | 0.708 | 0.658–0.746 | 10.2% | 8.8%–13.5% |
+| Hold `is_known_ip` constant | 0.694 | 0.629–0.762 | 10.4% | 7.3%–12.4% |
+| Hold `source_ip_frequency` constant | 0.809 | 0.794–0.820 | 6.1% | 5.7%–6.7% |
+| Hold both IP signals constant | 0.552 | 0.536–0.556 | 7.5% | 7.3%–8.3% |
+| Hold `is_known_event_type` constant | 0.725 | 0.694–0.769 | 9.8% | 7.8%–11.4% |
+
+The benchmark suggests that the binary unfamiliar-IP indicator carries more useful signal than the cumulative IP count for these two generated scenarios. Removing the count feature improved the measured five-seed F1 and FPR; removing both IP features reduced F1, indicating that the familiarity signal matters. The fixture contains no rate/frequency anomaly scenario and only two anomaly types, so this is not enough evidence to delete `source_ip_frequency` from the general UEBA feature contract. Likewise, the modest `is_known_event_type` ablation gain is not decisive because the benchmark has no injected novel-event-type scenario. Both features remain in v2 pending broader labeled evaluation.
 
 ## Findings and recommendations
 
-1. Preserve the seven-feature schema for this milestone; the controlled evidence is too narrow to justify changing a persisted feature contract.
-2. Before any future production-like experiment, reconcile snapshot and event-helper semantics for IP canonicalization, missing values, timestamp precision, and history scoping. Version the feature schema if semantics change.
-3. Evaluate whether `is_known_ip` adds value beyond `source_ip_frequency` using an ablation only after representative, trustworthy labels and broader data are available. Do not remove it based solely on this synthetic correlation.
+1. Keep the seven feature names/order but use schema `ueba-seven-v2`; v1 snapshots are rejected and must be regenerated. The fixture's measured model metrics are unchanged because its data does not exercise the fixed edge cases.
+2. The ablation supports `is_known_ip` as the clearer signal for the current unfamiliar-IP scenario. Revisit `source_ip_frequency` only with a high-volume/known-IP repetition scenario and trustworthy labels; do not generalize the current synthetic gain.
+3. Add a controlled novel-event-type scenario before judging `is_known_event_type`; the current 99.0% known rate is produced by the narrow fixture vocabulary.
 4. Define a bounded, point-in-time contract for `source_ip_frequency` and preserve an explicit unavailable state for missing identity/IP.
 5. Replace the login substring heuristic only after an event-type taxonomy or source-specific authentication outcome contract is approved.
 6. Current source lacks local timezone, authentication outcome, verified baseline snapshots, and trustworthy event labels. Do not infer those values from `raw_event`, alert state, or generated scenario labels.

@@ -4,22 +4,25 @@ from __future__ import annotations
 import csv
 import hashlib
 import hmac
-import ipaddress
 import json
 import math
 import os
 import re
 import tempfile
-from collections import Counter, defaultdict, deque
+from collections import Counter
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from itertools import groupby
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
 from app.services.ml_anomaly import FEATURE_NAMES
+from app.services.ml_feature_engine import (
+    canonicalize_source_ip,
+    feature_event_order_key,
+    features_for_event,
+)
 
-FEATURE_SCHEMA_VERSION = "ueba-seven-v1"
+FEATURE_SCHEMA_VERSION = "ueba-seven-v2"
 CSV_FIELDS = (
     "event_key", "subject_key", "subject_type", "user_key", "entity_key", "source_key", "external_key",
     "event_type_key", "source_ip_key", "event_time_utc", "feature_status",
@@ -67,12 +70,7 @@ def _token(key: bytes, namespace: str, value: object) -> str | None:
 
 
 def _canonical_ip(value: object) -> str | None:
-    if not isinstance(value, str) or not value.strip():
-        return None
-    try:
-        return ipaddress.ip_address(value.strip()).compressed
-    except ValueError:
-        return None
+    return canonicalize_source_ip(value)
 
 
 def _identity(event: object) -> tuple[str, str | None]:
@@ -115,8 +113,8 @@ def _deduplicate(events: Iterable[object], key: bytes) -> tuple[list[object], in
     for event in events:
         ts = _timestamp(event)
         (valid if ts else invalid).append((ts, _stable_record_key(event, key), event))
-    valid.sort(key=lambda item: (item[0], item[1]))
-    invalid.sort(key=lambda item: item[1])
+    valid.sort(key=lambda item: feature_event_order_key(item[2]))
+    invalid.sort(key=lambda item: feature_event_order_key(item[2]))
     seen: set[tuple[str, str]] = set()
     result, duplicates = [], 0
     for _, _, event in valid + invalid:
@@ -153,39 +151,23 @@ def _split_for(event_time: datetime | None, cutoffs: tuple[datetime | None, date
 def _feature_rows(events: list[object]) -> tuple[dict[int, dict[str, object]], int]:
     valid = [event for event in events if _timestamp(event)]
     valid.sort(key=lambda event: (_timestamp(event), str(getattr(event, "id", ""))))
-    histories: dict[str, dict[str, object]] = defaultdict(
-        lambda: {"times": deque(), "types": set(), "ips": Counter()}
-    )
+    histories: dict[str, list[object]] = {}
     rows: dict[int, dict[str, object]] = {}
     invalid_values = 0
-    for timestamp, same_time in groupby(valid, key=_timestamp):
-        assert timestamp is not None
-        batch = list(same_time)
+    timestamp_groups: list[list[object]] = []
+    for event in valid:
+        timestamp = _timestamp(event)
+        if not timestamp_groups or _timestamp(timestamp_groups[-1][0]) != timestamp:
+            timestamp_groups.append([event])
+        else:
+            timestamp_groups[-1].append(event)
+    for batch in timestamp_groups:
         for event in batch:
             uid = getattr(event, "user_id", None)
             uid = uid.strip() if isinstance(uid, str) else ""
             event_type = getattr(event, "event_type", None)
             event_type = event_type.strip() if isinstance(event_type, str) else ""
-            ip = _canonical_ip(getattr(event, "source_ip", None))
-            history = histories[uid] if uid else None
-            if history is not None:
-                recent: deque[datetime] = history["times"]
-                while recent and recent[0] < timestamp - timedelta(hours=24):
-                    recent.popleft()
-                types: set[str] = history["types"]
-                ips: Counter[str] = history["ips"]
-            else:
-                recent, types, ips = deque(), set(), Counter()
-            hour = timestamp.hour + timestamp.minute / 60 + timestamp.second / 3600
-            angle = 2 * math.pi * hour / 24
-            features: list[float | None] = [
-                math.sin(angle), math.cos(angle),
-                float("login" in event_type.lower()) if event_type else None,
-                float(ip in ips) if ip and uid else None,
-                float(event_type in types) if event_type and uid else None,
-                math.log1p(len(recent)) if uid else None,
-                math.log1p(ips[ip]) if ip and uid else None,
-            ]
+            features = features_for_event(event, histories.get(uid, ()))
             if not event_type:
                 invalid_values += 1
             invalid_values += sum(
@@ -196,24 +178,17 @@ def _feature_rows(events: list[object]) -> tuple[dict[int, dict[str, object]], i
                 status = "invalid_event_type"
             elif not uid:
                 status = "partial_missing_user"
-            elif not ip:
+            elif not _canonical_ip(getattr(event, "source_ip", None)):
                 status = "partial_missing_or_invalid_ip"
-            rows[id(event)] = {"features": features, "feature_status": status}
-        # Equal-time records have no reliable ordering; none can influence a peer.
+            rows[id(event)] = {"features": list(features), "feature_status": status}
+        # Events at the same timestamp are appended only after every peer was
+        # featurized, and the shared builder independently enforces strict <.
         for event in batch:
             uid = getattr(event, "user_id", None)
             uid = uid.strip() if isinstance(uid, str) else ""
             if not uid:
                 continue
-            history = histories[uid]
-            event_type = getattr(event, "event_type", None)
-            event_type = event_type.strip() if isinstance(event_type, str) else ""
-            ip = _canonical_ip(getattr(event, "source_ip", None))
-            history["times"].append(timestamp)
-            if event_type:
-                history["types"].add(event_type)
-            if ip:
-                history["ips"][ip] += 1
+            histories.setdefault(uid, []).append(event)
     return rows, invalid_values
 
 

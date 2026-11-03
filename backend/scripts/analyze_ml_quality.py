@@ -195,6 +195,58 @@ def analyze(fixture: Path) -> dict[str, object]:
         "test_labels_used_for_threshold_selection": False,
     }
 
+    feature_ablation = {}
+    ablation_sets = {
+        "remove_is_known_ip": ("is_known_ip",),
+        "remove_source_ip_frequency": ("source_ip_frequency",),
+        "remove_is_known_event_type": ("is_known_event_type",),
+        "remove_both_ip_signals": ("is_known_ip", "source_ip_frequency"),
+    }
+    for variant, removed_names in ablation_sets.items():
+        train_variant = X_train.copy()
+        validation_variant = X_validation.copy()
+        test_variant = X_test.copy()
+        for name in removed_names:
+            column = FEATURE_NAMES.index(name)
+            train_variant[:, column] = 0.0
+            validation_variant[:, column] = 0.0
+            test_variant[:, column] = 0.0
+        variant_seed_results = []
+        seed_42_threshold = None
+        seed_42_selected_metrics = None
+        for seed in SEEDS:
+            variant_model = fit_detector(
+                train_variant, contamination=0.05, random_state=seed, n_estimators=100
+            )
+            variant_validation_scores = [
+                variant_model.score(row)["decision_score"] for row in validation_variant
+            ]
+            variant_threshold = _select_validation_threshold(
+                validation_labels, variant_validation_scores
+            )
+            variant_test_scores = [
+                variant_model.score(row)["decision_score"] for row in test_variant
+            ]
+            fixed_metrics = _metrics(test_labels, variant_test_scores, 0.0)
+            selected_metrics = _metrics(test_labels, variant_test_scores, variant_threshold)
+            variant_seed_results.append({"seed": seed, **fixed_metrics})
+            if seed == 42:
+                seed_42_threshold = variant_threshold
+                seed_42_selected_metrics = selected_metrics
+        f1_values = [float(result["f1"]) for result in variant_seed_results]
+        fpr_values = [float(result["false_positive_rate"]) for result in variant_seed_results]
+        feature_ablation[variant] = {
+            "features_held_constant": list(removed_names),
+            "fixed_zero_by_seed": variant_seed_results,
+            "fixed_zero_test_f1_mean": float(np.mean(f1_values)),
+            "fixed_zero_test_f1_std": float(np.std(f1_values)),
+            "fixed_zero_test_f1_range": [min(f1_values), max(f1_values)],
+            "fixed_zero_test_fpr_mean": float(np.mean(fpr_values)),
+            "fixed_zero_test_fpr_range": [min(fpr_values), max(fpr_values)],
+            "seed_42_validation_max_f1_threshold": seed_42_threshold,
+            "seed_42_validation_max_f1_test": seed_42_selected_metrics,
+        }
+
     by_scenario_test = {}
     for scenario in sorted(set(test_labels)):
         indices = [i for i, label in enumerate(test_labels) if label == scenario]
@@ -327,6 +379,7 @@ def analyze(fixture: Path) -> dict[str, object]:
             "validation_rows": len(validation_indices),
             "test_rows": len(test_indices),
             "threshold_analysis": threshold_results,
+            "feature_ablation": feature_ablation,
             "test_metrics_by_scenario": by_scenario_test,
             "test_metrics_by_user": per_user,
             "contamination_sweep_fixed_zero": contamination_sweep,

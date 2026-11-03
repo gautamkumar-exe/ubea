@@ -80,7 +80,7 @@ def test_snapshot_compatibility_and_split_integrity(tmp_path: Path):
     snapshot_dir = _make_snapshot(tmp_path / "snapshot")
     snapshot = load_validated_snapshot(snapshot_dir)
 
-    assert snapshot.feature_schema_version == "ueba-seven-v1"
+    assert snapshot.feature_schema_version == "ueba-seven-v2"
     assert snapshot.source_environment == "test"
     assert len(snapshot.rows) == 30
     assert all(len(row.features) == len(FEATURE_NAMES) for row in snapshot.rows)
@@ -148,7 +148,7 @@ def test_snapshot_training_is_reproducible_and_records_artifact_metadata(tmp_pat
     assert first["experiment_id"] != second["experiment_id"]
     assert first["dataset_snapshot_id"] == second["dataset_snapshot_id"]
     assert first["model_configuration"]["random_state"] == 17
-    assert first["feature_specification_version"] == "ueba-seven-v1"
+    assert first["feature_specification_version"] == "ueba-seven-v2"
     assert first["training_records"] == 21
     assert first["validation_records"] == 5
     assert first["test_records"] == 4
@@ -292,6 +292,17 @@ def test_incompatible_feature_specification_is_rejected(tmp_path: Path):
     manifest_path = snapshot_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     manifest["feature_schema_version"] = "future-version"
+    manifest_path.write_text(json.dumps(manifest))
+
+    with pytest.raises(SnapshotValidationError, match="Incompatible feature"):
+        load_validated_snapshot(snapshot_dir)
+
+
+def test_v1_snapshot_is_rejected_after_feature_semantics_version_bump(tmp_path: Path):
+    snapshot_dir = _make_snapshot(tmp_path / "snapshot")
+    manifest_path = snapshot_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["feature_schema_version"] = "ueba-seven-v1"
     manifest_path.write_text(json.dumps(manifest))
 
     with pytest.raises(SnapshotValidationError, match="Incompatible feature"):

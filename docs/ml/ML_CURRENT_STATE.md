@@ -51,7 +51,7 @@ The pipeline has useful initial safeguards: the detector checks feature dimensio
 5. `user_event_frequency` — `log1p` of earlier events in the prior 24 hours.
 6. `source_ip_frequency` — `log1p` of prior occurrences of the event IP.
 
-`backend/app/services/ml_features.py::features_for_event` creates these values from prior events. Its SQL helpers scope history by `user_id`, but the pure helper itself trusts the caller to supply one user's history. Future production contracts should enforce entity isolation at the feature API boundary and version the feature schema so stored models cannot silently receive reordered or changed features.
+`backend/app/services/ml_features.py::features_for_event` delegates to the shared `backend/app/services/ml_feature_engine.py` implementation used by offline snapshots. It enforces same-user, strictly earlier history, canonical IP handling, aware UTC timestamps, and equal-time exclusion. These semantics are versioned as `ueba-seven-v2`; older feature snapshots are rejected by the experiment loader.
 
 There is no feature selection/evaluation study or feature contribution/explanation implementation. `MLAnomalyDetector.score` returns the raw feature values and a scikit-learn decision function score. That score is explicitly not a probability. It does not return per-feature explanations. Rule reasons in `backend/app/services/anomaly.py` are produced by the separate rule engine and must not be presented as ML explanations.
 

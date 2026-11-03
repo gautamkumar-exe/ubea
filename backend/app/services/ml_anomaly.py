@@ -8,15 +8,7 @@ import numpy as np
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
-FEATURE_NAMES = (
-    "hour_sin",
-    "hour_cos",
-    "is_login",
-    "is_known_ip",
-    "is_known_event_type",
-    "user_event_frequency",
-    "source_ip_frequency",
-)
+from app.services.ml_feature_engine import FEATURE_NAMES
 
 
 @dataclass

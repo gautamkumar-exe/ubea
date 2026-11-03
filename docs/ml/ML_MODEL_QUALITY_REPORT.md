@@ -58,6 +58,27 @@ The overall fixture is 1.98% generated anomalies, but the held-out test window i
 
 The unfamiliar-IP score band is well separated in this generated fixture. Unusual-hour scores overlap the normal band and cross zero, producing the three missed cases. The test set contains only 10 unfamiliar-IP and 15 unusual-hour cases.
 
+## Baseline versus feature-parity revision
+
+The baseline uses the prior v1 event feature helper. The revised path uses shared feature semantics `ueba-seven-v2`. The checked-in fixture has canonical IP strings, complete user/type/IP fields, zero seconds/microseconds, and ordered per-user histories, so the parity correction does not alter its feature matrix. The revised run therefore reproduces, rather than improves, the baseline metrics:
+
+| Measurement | v1 baseline | v2 revised | Change |
+|---|---:|---:|---:|
+| Seed-42 test precision | 0.5641 | 0.5641 | 0.0000 |
+| Seed-42 test recall | 0.8800 | 0.8800 | 0.0000 |
+| Seed-42 test F1 | 0.6875 | 0.6875 | 0.0000 |
+| Seed-42 test FPR | 8.8% | 8.8% | 0.0 pp |
+| Five-seed mean precision | 0.5573 | 0.5573 | 0.0000 |
+| Five-seed mean recall | 0.9760 | 0.9760 | 0.0000 |
+| Five-seed mean F1 | 0.7082 | 0.7082 | 0.0000 |
+| Five-seed mean FPR | 10.2% | 10.2% | 0.0 pp |
+| Leave-one-user-out precision | 0.4630 | 0.4630 | 0.0000 |
+| Leave-one-user-out recall | 1.0000 | 1.0000 | 0.0000 |
+| Leave-one-user-out F1 | 0.6329 | 0.6329 | 0.0000 |
+| Leave-one-user-out FPR | 15.0% | 15.0% | 0.0 pp |
+
+Scenario detections also remain unchanged: normal 17/193 false positives, unfamiliar IP 10/10 detected, unusual hour 12/15 detected. This is expected: the revision fixes edge-case parity and leakage boundaries that the canonical, complete benchmark does not exercise. It does not demonstrate a model-quality improvement.
+
 ## Threshold analysis (validation selection; test evaluation)
 
 Two alternatives were selected using validation labels only, then evaluated once on test. No test label or score was used to choose either threshold.
@@ -113,6 +134,8 @@ A leave-one-user-out check fit on the other four users' train rows, then evaluat
 
 This does test different generated work-hour windows and unseen synthetic identities, but not broad behavioral profiles: event volume is only 4–6 generated normal events/day, anomaly scenarios are only unfamiliar IP and unusual UTC hour, and all users share the same generator structure.
 
+The separate five-seed feature ablation is in `ML_FEATURE_QUALITY_REPORT.md`. On this fixture, holding `source_ip_frequency` constant improved mean test F1 from 0.708 to 0.809 and lowered mean FPR from 10.2% to 6.1%; holding both IP signals constant reduced mean F1 to 0.552. This apparent gain is limited to a benchmark with no high-frequency anomaly scenario, so the seven-feature schema is retained pending broader evidence.
+
 ## Snapshot-mode separation
 
 Snapshot experiments do not have trustworthy event-level labels. Their `evaluation.json` keeps precision, recall, F1, confusion matrix, false-positive analysis, and false-negative analysis unavailable. It reports score distributions and predicted anomaly counts/rates by temporal split only. No snapshot results were used in the labeled tables above.
@@ -124,6 +147,6 @@ Snapshot experiments do not have trustworthy event-level labels. Their `evaluati
 3. Do not claim a 5% production FPR from the validation constraint; measured synthetic test FPR was 11.4%.
 4. Extend the synthetic benchmark only with clearly specified controlled scenarios and broader normal profiles (including volume and event-type variation), then preserve scenario labels strictly outside model fit.
 5. Seek an approved source of adjudicated event outcomes before estimating operational precision, recall, false-positive cost, or selecting an alert threshold.
-6. Reconcile the snapshot and event-helper feature semantics documented in `ML_FEATURE_QUALITY_REPORT.md` before comparing future snapshots to these benchmark results.
+6. Regenerate v1 snapshots with the v2 feature builder before any snapshot experiment; the loader rejects old feature semantics rather than silently reinterpreting them.
 
 Every result here is from a generated fixture. It does not establish production precision, recall, FPR, robustness, or security efficacy.

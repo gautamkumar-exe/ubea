@@ -27,11 +27,11 @@ The current training loader requires a new-format snapshot with:
 
 - `source_environment` exactly `development` or `test`;
 - an integrity-matching snapshot ID and `splits.json` identity;
-- feature schema version `ueba-seven-v1` and the exact seven-feature order;
+- feature schema version `ueba-seven-v2` and the exact seven-feature order;
 - the expected dataset columns, with no target-label column;
 - split counts and cutoffs that agree with row event times and equal-time grouping.
 
-Production, unclassified, malformed, and older snapshots without environment provenance fail closed. Regenerate older snapshots from an isolated nonproduction database. The environment check is defense in depth: maintain accurate environment settings and verify the database endpoint separately. There is no command-line flag that changes snapshot provenance. `--confirm-nonproduction` only requires an explicit operator acknowledgement; it does not relabel a snapshot.
+Production, unclassified, malformed, older snapshots without environment provenance, and v1 feature snapshots fail closed. Regenerate incompatible snapshots from an isolated nonproduction database using the current shared feature builder. The environment check is defense in depth: maintain accurate environment settings and verify the database endpoint separately. There is no command-line flag that changes snapshot provenance. `--confirm-nonproduction` only requires an explicit operator acknowledgement; it does not relabel a snapshot.
 
 Example from the repository root, with `DATABASE_URL` already configured for a dedicated test database and a secure HMAC key retrieved locally:
 

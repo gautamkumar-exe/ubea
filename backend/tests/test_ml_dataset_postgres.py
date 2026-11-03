@@ -326,7 +326,7 @@ def test_snapshot_to_model_experiment_end_to_end(isolated_postgres, tmp_path: Pa
     assert metadata["dataset_kind"] == "validated_offline_snapshot"
     assert metadata["dataset_snapshot_id"] == snapshot_summary["snapshot_id"]
     assert metadata["source_environment"] == "test"
-    assert metadata["feature_specification_version"] == "ueba-seven-v1"
+    assert metadata["feature_specification_version"] == "ueba-seven-v2"
     assert metadata["feature_names"] == manifest["feature_names"]
     assert metadata["model_configuration"] == {
         "contamination": 0.05,

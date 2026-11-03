@@ -15,7 +15,7 @@ The source model is `backend/app/models/security_event.py::SecurityEvent`; no fi
 
 ## Supported features
 
-The snapshot uses the existing seven-feature order from `backend/app/services/ml_anomaly.py::FEATURE_NAMES`:
+The snapshot uses shared feature schema `ueba-seven-v2` and the existing seven-feature order from `backend/app/services/ml_anomaly.py::FEATURE_NAMES`. Both snapshot and event scoring call `backend/app/services/ml_feature_engine.py`:
 
 1. UTC `hour_sin` and `hour_cos` from `event_time`.
 2. `is_login` from the existing event-type substring rule.
