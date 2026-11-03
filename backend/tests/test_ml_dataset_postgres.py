@@ -6,6 +6,7 @@ select, or delete test data. They create a new cluster in a temporary directory.
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 import os
@@ -14,10 +15,12 @@ import socket
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timezone
+import hashlib
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import psycopg
+import joblib
 import pytest
 from sqlalchemy import create_engine, func, select, text
 from sqlalchemy.exc import DBAPIError
@@ -258,8 +261,144 @@ def test_cli_snapshot_schema_privacy_features_quality_splits_and_determinism(iso
         assert stored_boundary.raw_event == {"payload_secret": "synthetic-payload-value"}
 
 
+def test_snapshot_to_model_experiment_end_to_end(isolated_postgres, tmp_path: Path):
+    """Exercise snapshot and snapshot-mode training CLIs on disposable synthetic PostgreSQL."""
+    start = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    events = [
+        _event(
+            "login_success" if index % 3 == 0 else "file_access",
+            start + timedelta(hours=index),
+            external_id=f"controlled-experiment-event-{index}",
+            user_id=f"controlled-experiment-user-{index % 4}",
+            source_ip=f"192.0.2.{10 + index % 5}",
+            raw_event={"controlled_payload": f"private-value-{index}"},
+        )
+        for index in range(60)
+    ]
+    with Session(isolated_postgres["engine"]) as session:
+        session.add_all(events)
+        session.commit()
+
+    snapshot_output = tmp_path / "snapshots"
+    snapshot_process = _run_cli(
+        isolated_postgres["url"],
+        snapshot_output,
+        secret=TEST_KEY.decode("latin-1"),
+        cutoff="2026-09-01T00:00:00Z",
+    )
+    assert snapshot_process.returncode == 0, snapshot_process.stderr
+    snapshot_summary = json.loads(snapshot_process.stdout)
+    snapshot_dir = Path(snapshot_summary["output_directory"])
+    manifest = json.loads((snapshot_dir / "manifest.json").read_text())
+    assert manifest["source_environment"] == "test"
+    assert manifest["records_in_snapshot"] == 60
+    assert manifest["feature_names"] == [
+        "hour_sin", "hour_cos", "is_login", "is_known_ip",
+        "is_known_event_type", "user_event_frequency", "source_ip_frequency",
+    ]
+
+    experiment_output = tmp_path / "experiments"
+    experiment_env = os.environ.copy()
+    experiment_env["PYTHONPATH"] = str(BACKEND_ROOT)
+    experiment_process = subprocess.run(
+        [
+            sys.executable, "-m", "scripts.run_ml_experiment",
+            "--snapshot-dir", str(snapshot_dir),
+            "--confirm-nonproduction",
+            "--output-dir", str(experiment_output),
+            "--contamination", "0.05",
+            "--random-state", "42",
+            "--n-estimators", "100",
+        ],
+        cwd=BACKEND_ROOT,
+        env=experiment_env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert experiment_process.returncode == 0, experiment_process.stderr
+    result = json.loads(experiment_process.stdout)
+    experiment_dir = Path(result["output_directory"])
+    metadata = json.loads((experiment_dir / "metadata.json").read_text())
+    evaluation = json.loads((experiment_dir / "evaluation.json").read_text())
+
+    assert metadata["experiment_status"] == "completed"
+    assert metadata["dataset_kind"] == "validated_offline_snapshot"
+    assert metadata["dataset_snapshot_id"] == snapshot_summary["snapshot_id"]
+    assert metadata["source_environment"] == "test"
+    assert metadata["feature_specification_version"] == "ueba-seven-v1"
+    assert metadata["feature_names"] == manifest["feature_names"]
+    assert metadata["model_configuration"] == {
+        "contamination": 0.05,
+        "random_state": 42,
+        "n_estimators": 100,
+    }
+    assert metadata["decision_threshold"]["threshold"] == 0.0
+    assert metadata["decision_threshold"]["validation_or_test_tuning"] is False
+    assert metadata["training_records"] > 10
+    assert metadata["validation_records"] > 0
+    assert metadata["test_records"] > 0
+    assert (
+        metadata["training_records"]
+        + metadata["validation_records"]
+        + metadata["test_records"]
+        == manifest["records_in_snapshot"]
+    )
+    assert evaluation["evaluation_status"] == "unavailable_no_trustworthy_ground_truth_labels"
+    assert evaluation["supervised_metrics"] == {
+        "precision": None,
+        "recall": None,
+        "f1": None,
+        "confusion_matrix": None,
+    }
+    for split in ("validation", "test"):
+        summary = evaluation["score_summary_by_split"][split]
+        assert summary["scored_records"] > 0
+        assert summary["decision_score_distribution"] is not None
+        assert summary["predicted_anomalies"] <= summary["scored_records"]
+        assert 0 <= summary["predicted_anomaly_rate"] <= 1
+
+    model_path = experiment_dir / "model.joblib"
+    assert hashlib.sha256(model_path.read_bytes()).hexdigest() == metadata["model_artifact_sha256"]
+    model_artifact = joblib.load(model_path)
+    assert model_artifact["feature_names"] == tuple(manifest["feature_names"])
+    assert model_artifact["scaler"].n_samples_seen_ == metadata["training_records"]
+    assert model_artifact["model"].random_state == 42
+    assert len(model_artifact["model"].estimators_) == 100
+
+    exported = b"".join(path.read_bytes() for path in experiment_dir.iterdir() if path.is_file())
+    for sensitive in (
+        TEST_KEY,
+        b"controlled-experiment-user-",
+        b"controlled-experiment-event-",
+        b"private-value-",
+        b"192.0.2.10",
+    ):
+        assert sensitive not in exported
+    predictions = (experiment_dir / "predictions.csv").read_text()
+    assert "event_key" in predictions
+    assert "controlled-experiment-event-" not in predictions
+
+    # Keep the verification output itself free of identifiers, keys, and raw event data.
+    print(json.dumps({
+        "snapshot_id": snapshot_summary["snapshot_id"],
+        "source_environment": manifest["source_environment"],
+        "snapshot_records": manifest["records_in_snapshot"],
+        "split_records": {
+            "train": metadata["training_records"],
+            "validation": metadata["validation_records"],
+            "test": metadata["test_records"],
+        },
+        "experiment_id": metadata["experiment_id"],
+        "evaluation_status": evaluation["evaluation_status"],
+        "test_anomaly_count": evaluation["score_summary_by_split"]["test"]["predicted_anomalies"],
+        "test_anomaly_rate": evaluation["score_summary_by_split"]["test"]["predicted_anomaly_rate"],
+        "model_sha256_verified": True,
+        "sensitive_values_absent": True,
+    }, sort_keys=True))
+
+
 def _token_for_test(value: str, namespace: str) -> str:
-    import hashlib
     import hmac
     return hmac.new(TEST_KEY, f"{namespace}\0{value}".encode(), hashlib.sha256).hexdigest()
 
