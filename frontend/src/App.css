@@ -280,6 +280,50 @@ h2, h3 { letter-spacing: -.025em; }
 .pagination-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 21px; border-top: 1px solid var(--color-border); color: var(--color-muted); font-family: var(--font-mono); font-size: 10px; }
 .pagination-bar > div { display: flex; gap: 7px; }
 
+/* SOC overview panels */
+.overview-feature { gap: 18px; }
+.overview-metrics { min-width: 0; }
+.overview-metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.overview-upper-grid { display: grid; grid-template-columns: minmax(260px, .78fr) minmax(0, 1.55fr); align-items: start; gap: 16px; }
+.overview-section { min-width: 0; }
+.overview-section .surface-card__header { align-items: center; padding: 17px 18px 15px; }
+.overview-section .surface-card__header h2 { font-size: 16px; }
+.overview-section .surface-card__header p { font-size: 10px; }
+.overview-section__actions { display: flex; align-items: end; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.overview-section__actions .visually-label { min-width: 125px; }
+.overview-section__actions select { min-height: 34px; padding: 7px 24px 7px 9px; border: 1px solid var(--color-border-strong); border-radius: 2px; background: var(--color-surface-alt); color: var(--color-text); font-size: 11px; }
+.overview-message { margin: 10px 18px; }
+.overview-message--stale { border-color: var(--color-warning); background: var(--color-warning-soft); color: #ffc65c; }
+.overview-refresh-note { margin: 0; padding: 8px 18px 0; color: var(--color-muted); font-size: 10px; }
+.overview-data-note { margin: 0; padding: 11px 18px 14px; color: var(--color-muted); font-size: 10px; line-height: 1.5; }
+.overview-state-card, .overview-section-state { display: flex; min-height: 74px; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 18px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-muted); font-size: 12px; }
+.overview-state-card--error, .overview-section-state--error { border-color: var(--color-danger); background: var(--color-danger-soft); color: #ff9b98; }
+.overview-section-state { border: 0; background: transparent; }
+.overview-inline-empty { margin: 14px 18px; }
+.severity-distribution { display: grid; gap: 14px; padding: 20px 18px 8px; }
+.severity-distribution__row { display: grid; grid-template-columns: 75px minmax(55px, 1fr) 50px 45px; align-items: center; gap: 10px; min-width: 0; }
+.severity-distribution__label { font-size: 11px; font-weight: 650; }
+.severity-distribution__label--critical { color: #ff7773; }
+.severity-distribution__label--high { color: #ff9a3d; }
+.severity-distribution__label--medium { color: #ffc65c; }
+.severity-distribution__label--low { color: #38bdf8; }
+.severity-distribution__track { display: block; height: 8px; overflow: hidden; border: 1px solid var(--color-border); background: var(--color-surface-alt); }
+.severity-distribution__fill { display: block; height: 100%; min-width: 0; }
+.severity-distribution__fill--critical { background: var(--color-danger); }
+.severity-distribution__fill--high { background: var(--color-accent); }
+.severity-distribution__fill--medium { background: var(--color-warning); }
+.severity-distribution__fill--low { background: var(--color-cyan); }
+.severity-distribution__row strong { color: var(--color-text); font-family: var(--font-mono); font-size: 11px; text-align: right; }
+.severity-distribution__row small { color: var(--color-muted); font-family: var(--font-mono); font-size: 9px; text-align: right; }
+.overview-alerts .alert-table { min-width: 820px; }
+.overview-alerts .alert-table .alert-name-cell { min-width: 225px; }
+.overview-alerts .alert-table .cell-secondary { max-width: 210px; }
+.overview-alerts .alert-table .button--table { min-width: auto; }
+.overview-event-table .data-table { min-width: 700px; }
+.overview-event-table .data-table th:first-child, .overview-event-table .data-table td:first-child { padding-left: 18px; }
+.overview-event-table .data-table th:last-child, .overview-event-table .data-table td:last-child { padding-right: 18px; }
+.overview-events .surface-card__header { padding-bottom: 16px; }
+
 /* Forms */
 .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 17px 18px; padding: 22px; }
 .field { display: flex; min-width: 0; flex-direction: column; gap: 7px; color: var(--color-text-secondary); font-size: 11px; font-weight: 650; line-height: 1.4; }
@@ -375,6 +419,7 @@ h2, h3 { letter-spacing: -.025em; }
   .metric-card:nth-child(2) { border-right: 0; }
   .metric-card:nth-child(-n+2) { border-bottom: 1px solid var(--color-border); }
   .page-stack.analytics-layout { grid-template-columns: 1fr; }
+  .overview-upper-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
   .app-shell { display: block; }
@@ -399,6 +444,7 @@ h2, h3 { letter-spacing: -.025em; }
   .page-header__refresh span { font-size: 16px; }
   .page-stack { gap: 16px; }
   .surface-card__header { align-items: flex-start; flex-direction: column; gap: 12px; padding: 17px; }
+  .overview-section__actions { width: 100%; justify-content: flex-start; }
   .table-toolbar { align-items: stretch; flex-direction: column; padding: 12px; }
   .filter-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .filter-controls select { width: 100%; min-width: 0; }
@@ -420,6 +466,7 @@ h2, h3 { letter-spacing: -.025em; }
   .page-header .eyebrow { font-size: 8px; }
   .page-header__refresh { margin-left: auto; }
   .metric-grid { grid-template-columns: 1fr 1fr; }
+  .overview-metric-grid { grid-template-columns: 1fr 1fr; }
   .metric-card { min-height: 115px; padding: 13px; }
   .metric-card__label { font-size: 9px; }
   .metric-card__value { font-size: 29px; }
@@ -432,6 +479,10 @@ h2, h3 { letter-spacing: -.025em; }
   .detail-grid { grid-template-columns: 1fr; }
   .detail-field--wide { grid-column: auto; }
   .analysis-summary { gap: 12px; }
+  .severity-distribution { gap: 12px; padding: 16px 12px 6px; }
+  .severity-distribution__row { grid-template-columns: 62px minmax(40px, 1fr) 38px 38px; gap: 6px; }
+  .severity-distribution__row strong { font-size: 10px; }
+  .severity-distribution__row small { font-size: 8px; }
   .app-footer { font-size: 8px; }
 }
 

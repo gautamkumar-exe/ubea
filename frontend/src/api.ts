@@ -155,14 +155,14 @@ export function getEvents(params: {
   user_id?: string;
   event_type?: string;
   source?: string;
-} = {}): Promise<SecurityEventListResponse> {
+} = {}, signal?: AbortSignal): Promise<SecurityEventListResponse> {
   const query = new URLSearchParams();
   query.set("limit", String(params.limit ?? 50));
   query.set("offset", String(params.offset ?? 0));
   if (params.user_id?.trim()) query.set("user_id", params.user_id.trim());
   if (params.event_type?.trim()) query.set("event_type", params.event_type.trim());
   if (params.source?.trim()) query.set("source", params.source.trim());
-  return request<SecurityEventListResponse>(`/events?${query.toString()}`);
+  return request<SecurityEventListResponse>(`/events?${query.toString()}`, { signal });
 }
 
 export function ingestEvent(payload: SecurityEventCreate): Promise<{

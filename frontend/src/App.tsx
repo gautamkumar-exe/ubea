@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getHealth } from "./api";
 import { Sidebar, type WorkspacePage } from "./layout/Sidebar";
 import { PageHeader } from "./layout/PageHeader";
+import { OverviewFeature } from "./features/overview/OverviewFeature";
 import { AlertsFeature } from "./features/alerts/AlertsFeature";
 import { EventsFeature } from "./features/events/EventsFeature";
 import { AnalyticsFeature } from "./features/analytics/AnalyticsFeature";
@@ -70,7 +71,7 @@ function App() {
         <PageHeader page={activePage} onRefresh={refreshWorkspace} onOpenNavigation={() => setMobileSidebarOpen(true)} />
         {healthError && <div className="inline-message inline-message--error app-health-message" role="alert"><span><strong>Backend health check failed.</strong> {healthError}</span><button type="button" className="text-button" onClick={() => void checkHealth()}>Retry</button></div>}
 
-        {activePage === "overview" && <AlertsFeature mode="overview" refreshToken={refreshToken} />}
+        {activePage === "overview" && <OverviewFeature refreshToken={refreshToken} onDataChanged={refreshWorkspace} onNavigateToAlerts={() => setActivePage("alerts")} onNavigateToEvents={() => setActivePage("events")} />}
         {activePage === "alerts" && <AlertsFeature mode="alerts" refreshToken={refreshToken} />}
         {activePage === "events" && <EventsFeature refreshToken={refreshToken} onAnalyzeEvent={navigateToAnalysis} />}
         {activePage === "analytics" && <AnalyticsFeature initialEventId={initialEventId} onAnalysisComplete={refreshWorkspace} />}
