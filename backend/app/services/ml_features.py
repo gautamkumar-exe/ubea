@@ -1,86 +1,27 @@
 
 from __future__ import annotations
 
-import math
-from collections import Counter
-from datetime import datetime, timedelta, timezone
 from typing import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.security_event import SecurityEvent
-from app.services.ml_anomaly import FEATURE_NAMES
-
-
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
+from app.services.ml_feature_engine import FEATURE_NAMES, features_for_event as _features_for_event
 
 
 def features_for_event(
     event: SecurityEvent,
     history: Sequence[SecurityEvent],
-) -> list[float]:
-    """Build event features using strictly earlier events only."""
-    event_time = _as_utc(event.event_time)
-
-    prior_events = [
-        previous
-        for previous in history
-        if _as_utc(previous.event_time) < event_time
-    ]
-
-    hour = event_time.hour + event_time.minute / 60.0
-    hour_angle = 2 * math.pi * hour / 24.0
-
-    known_ips = {
-        previous.source_ip
-        for previous in prior_events
-        if previous.source_ip
-    }
-    known_event_types = {
-        previous.event_type
-        for previous in prior_events
-    }
-
-    window_start = event_time - timedelta(hours=24)
-    recent_event_count = sum(
-        1
-        for previous in prior_events
-        if window_start <= _as_utc(previous.event_time) < event_time
-    )
-
-    ip_counts = Counter(
-        previous.source_ip
-        for previous in prior_events
-        if previous.source_ip
-    )
-
-    ip_frequency = (
-        math.log1p(ip_counts[event.source_ip])
-        if event.source_ip
-        else 0.0
-    )
-
-    features = [
-        math.sin(hour_angle),
-        math.cos(hour_angle),
-        float("login" in event.event_type.lower()),
-        float(bool(event.source_ip and event.source_ip in known_ips)),
-        float(event.event_type in known_event_types),
-        math.log1p(recent_event_count),
-        ip_frequency,
-    ]
-
+) -> list[float | None]:
+    """Public event feature helper backed by the shared snapshot engine."""
+    features = _features_for_event(event, history)
     if len(features) != len(FEATURE_NAMES):
         raise RuntimeError("Feature count does not match the ML model")
-
     return features
 
 
-def get_event_features(db: Session, event_id) -> list[float]:
+def get_event_features(db: Session, event_id) -> list[float | None]:
     event = db.get(SecurityEvent, event_id)
 
     if event is None:
@@ -125,7 +66,9 @@ def get_historical_training_features(
     history: list[SecurityEvent] = []
 
     for historical_event in historical_events:
-        training_rows.append(features_for_event(historical_event, history))
+        features = features_for_event(historical_event, history)
+        if all(value is not None for value in features):
+            training_rows.append([float(value) for value in features])
         history.append(historical_event)
 
     return training_rows

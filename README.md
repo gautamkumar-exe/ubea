@@ -2,7 +2,7 @@
 
 A User and Entity Behavior Analytics (UEBA) platform for security operations teams. It ingests security events, applies explainable rule-based anomaly detection, creates alerts, and records analyst feedback.
 
-> **Status:** The application works locally. ML development is intentionally paused. Authentication, authorization, and production hardening remain future work.
+> **Status:** The application works locally. ML Analytics provides a synthetic-only offline demonstration; live-event ML inference and production integration are not implemented. Authentication, authorization, and production hardening remain future work.
 
 ## 1. Features
 
@@ -12,6 +12,7 @@ A User and Entity Behavior Analytics (UEBA) platform for security operations tea
 - Create, filter, inspect, and update security alerts.
 - Submit analyst verdicts and comments.
 - View operational data through a React dashboard.
+- Run a synthetic-only Isolation Forest demonstration from the ML Analytics page; results do not affect operational alerts.
 
 ## 2. Tech Stack
 
@@ -100,7 +101,7 @@ ueba-platform/
 └── README.md
 ```
 
-ML-related files remain in the repository but are not part of the active workflow.
+ML training and evaluation remain experimental/offline. `GET /ml-analytics/demo` runs the bundled synthetic fixture in memory and returns four demo cases plus held-out benchmark results. It does not access PostgreSQL or modify alerts. There is no live-event ML inference.
 
 ## 6. Requirements
 
@@ -173,6 +174,7 @@ Check `/docs` for exact request schemas and query parameters.
 | `POST` | `/baselines/{user_id}/rebuild` | Rebuild a user baseline |
 | `GET` | `/baselines/{user_id}` | Retrieve a user baseline |
 | `POST` | `/anomalies/analyze/{event_id}` | Analyze a stored event |
+| `GET` | `/ml-analytics/demo` | Run the bundled synthetic-only ML demonstration and evaluation |
 | `GET` | `/alerts` | List alerts |
 | `GET` | `/alerts/{alert_id}` | Retrieve an alert |
 | `PATCH` | `/alerts/{alert_id}/status` | Update alert status |

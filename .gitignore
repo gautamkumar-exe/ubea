@@ -43,6 +43,10 @@ __pycache__/
 node_modules/
 frontend/dist/
 
+# Local offline ML snapshots may contain sensitive derived telemetry
+backend/data/ml_snapshots/
+backend/data/ml_experiments/
+
 # macOS
 .DS_Store
 # Python environments

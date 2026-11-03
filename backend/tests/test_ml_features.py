@@ -7,6 +7,7 @@ from app.services.ml_features import features_for_event
 
 def make_event(event_time, event_type="login_success", source_ip="192.0.2.10"):
     return SimpleNamespace(
+        user_id="synthetic-user",
         event_time=datetime.fromisoformat(event_time).replace(
             tzinfo=timezone.utc
         ),

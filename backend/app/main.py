@@ -10,6 +10,8 @@ from app.api.routes.anomalies import router as anomalies_router
 from app.api.routes.alerts import router as alerts_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.feedback import router as feedback_router
+from app.api.routes.ml_analytics import router as ml_analytics_router
+from app.api.routes.ai_assistant import router as ai_assistant_router
 
 
 app = FastAPI(title=settings.app_name)
@@ -28,6 +30,8 @@ app.include_router(events_router)
 app.include_router(baselines_router)
 app.include_router(alerts_router)
 app.include_router(feedback_router)
+app.include_router(ml_analytics_router)
+app.include_router(ai_assistant_router)
 from app.api.routes.feedback import router as feedback_router
 
 @app.get("/health")

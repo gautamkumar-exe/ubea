@@ -1,0 +1,627 @@
+<!DOCTYPE html><html lang="en" class="dark"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UEBA SOC - Overview Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'primary': '#F58220',
+            'secondary': '#00A3E0',
+            'critical': '#E53935',
+            'high': '#F58220',
+            'warning': '#F5A623',
+            'medium': '#F5A623',
+            'low': '#00A3E0',
+            'success': '#10B981',
+            'border-base': '#2A313D',
+            'border-light': '#374151',
+            'surface-dark': '#0B0F14',
+            'surface-sidebar': '#0D1117',
+            'surface-card': '#151B24',
+            'surface-panel': '#1A222D',
+          },
+          fontFamily: {
+            sans: ['"Instrument Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"Source Code Pro"', 'Consolas', 'monospace'],
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Source+Code+Pro:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #0B0F14;
+      color: #F1F5F9;
+      font-family: 'Instrument Sans', sans-serif;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0D1117;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2A313D;
+      border-radius: 2px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #374151;
+    }
+  </style>
+</head>
+<body class="h-[1024px] w-screen overflow-hidden flex flex-col antialiased select-none text-[13px]" data-stitch-vh="h-[1024px]===h-screen">
+
+  <!-- Top Global Navigation Bar (Splunk ES Style) -->
+  <header class="h-12 bg-[#0D1117] border-b border-[#2A313D] px-4 flex items-center justify-between shrink-0 z-30">
+    <div class="flex items-center gap-3">
+      <!-- App Brand & Identity -->
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded bg-[#F58220] flex items-center justify-center font-bold text-black text-xs tracking-tighter">
+          UE
+        </div>
+        <span class="font-bold text-[14px] tracking-wide text-white flex items-center gap-1.5">
+          <span>UEBA</span>
+          <span class="text-[11px] font-semibold text-[#F58220] uppercase px-1.5 py-0.2 bg-[#F58220]/15 border border-[#F58220]/30 rounded">SOC Core</span>
+        </span>
+      </div>
+      <div class="h-4 w-px bg-[#2A313D] mx-1"></div>
+      
+      <!-- Global Search Bar with Splunk Syntax hint -->
+      <div class="relative w-80">
+        <span class="material-symbols-outlined absolute left-2.5 top-2 text-[#94A3B8] text-[18px]">search</span>
+        <input type="text" placeholder="search index=ueba sourcetype=auth user=&#34;*admin*&#34;" class="w-full bg-[#151B24] border border-[#2A313D] rounded py-1 pl-8 pr-3 text-[12px] text-[#F1F5F9] font-mono placeholder-[#64748B] focus:outline-none focus:border-[#F58220] transition-colors">
+        <span class="absolute right-2 top-2 text-[10px] font-mono text-[#64748B] bg-[#0D1117] px-1 rounded border border-[#2A313D]">/</span>
+      </div>
+    </div>
+
+    <!-- Right Controls: Time Range Selector, Refresh, API Status & Analyst Profile -->
+    <div class="flex items-center gap-2.5">
+      <!-- Time Range Selector -->
+      <div class="flex items-center bg-[#151B24] border border-[#2A313D] rounded px-2.5 py-1 text-xs text-[#CBD5E1] cursor-pointer hover:border-[#374151]">
+        <span class="material-symbols-outlined text-[16px] text-[#F58220] mr-1.5">schedule</span>
+        <span class="font-medium text-[12px]">Last 24 Hours</span>
+        <span class="material-symbols-outlined text-[16px] text-[#64748B] ml-1">expand_more</span>
+      </div>
+
+      <!-- Auto Refresh Control -->
+      <button class="flex items-center gap-1 bg-[#151B24] border border-[#2A313D] hover:border-[#374151] rounded px-2.5 py-1 text-[12px] text-[#CBD5E1]">
+        <span class="material-symbols-outlined text-[16px] text-[#00A3E0]">refresh</span>
+        <span class="font-medium">30s</span>
+      </button>
+
+      <!-- Backend API & Postgres Connection Status Indicator -->
+      <div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#10B981]/10 border border-[#10B981]/30 text-[11px] font-mono text-[#34D399]">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse"></span>
+        <span>API: CONNECTED</span>
+      </div>
+
+      <div class="h-4 w-px bg-[#2A313D]"></div>
+
+      <!-- Notifications -->
+      <button class="relative p-1 text-[#94A3B8] hover:text-white rounded hover:bg-[#151B24]">
+        <span class="material-symbols-outlined text-[20px]">notifications</span>
+        <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E53935]"></span>
+      </button>
+
+      <!-- Analyst Profile Menu -->
+      <div class="flex items-center gap-2 pl-1 cursor-pointer">
+        <div class="w-6 h-6 rounded bg-[#1A222D] border border-[#2A313D] flex items-center justify-center font-bold text-xs text-[#00A3E0]">
+          SA
+        </div>
+        <div class="flex flex-col text-left leading-tight hidden md:flex">
+          <span class="text-[12px] font-semibold text-[#F1F5F9]">s.analyst</span>
+          <span class="text-[10px] text-[#94A3B8]">SOC Tier 2</span>
+        </div>
+      </div>
+    </div>
+  <div class="hidden" aria-hidden="true">Static design prototype: displayed metrics and entities are illustrative, not live telemetry.</div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Left Persistent Collapsible Sidebar Navigation -->
+    <aside class="w-56 bg-[#0D1117] border-r border-[#2A313D] flex flex-col justify-between shrink-0">
+      <div class="py-2 flex flex-col overflow-y-auto">
+        <!-- Section Header -->
+        <div class="px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider text-[#64748B]">Monitoring &amp; Triage</div>
+
+        <!-- Navigation Links -->
+        <nav class="space-y-0.5 px-2">
+          <!-- Active Overview -->
+          <a href="#" class="flex items-center justify-between px-2.5 py-1.5 rounded bg-[#F58220]/15 text-[#F58220] font-medium border-l-2 border-[#F58220]">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">dashboard</span>
+              <span>Overview</span>
+            </div>
+            <span class="text-[10px] font-mono bg-[#F58220]/20 px-1.5 py-0.2 rounded text-[#F58220]">LIVE</span>
+          </a>
+
+          <!-- Security Events -->
+          <a href="#" class="flex items-center justify-between px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">dataset</span>
+              <span>Security Events</span>
+            </div>
+            <span class="text-[10px] font-mono text-[#64748B]">142.8k</span>
+          </a>
+
+          <!-- Security Alerts -->
+          <a href="#" class="flex items-center justify-between px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">warning</span>
+              <span>Security Alerts</span>
+            </div>
+            <span class="text-[10px] font-bold font-mono bg-[#E53935]/20 text-[#EF5350] px-1.5 py-0.2 rounded">14</span>
+          </a>
+
+          <a href="#" aria-label="ML Analytics (not wired in static prototype)" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9]">
+            <span class="material-symbols-outlined text-[18px]">psychology</span><span>ML Analytics</span>
+          </a>
+          <a href="#" aria-label="AI SOC Assistant (not wired in static prototype)" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9]">
+            <span class="material-symbols-outlined text-[18px]">smart_toy</span><span>AI SOC Assistant</span>
+          </a>
+          <div class="px-3 pt-3 pb-1 text-[10px] uppercase font-bold tracking-wider text-[#64748B]">Behavioral Intelligence</div>
+
+          <!-- User Analytics -->
+          <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">person_search</span>
+            <span>User Analytics</span>
+          </a>
+
+          <!-- Entity Behavior -->
+          <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">hub</span>
+            <span>Entity Behavior</span>
+          </a>
+
+          <!-- Behavioral Baselines -->
+          <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">tune</span>
+            <span>Behavioral Baselines</span>
+          </a>
+
+          <!-- Investigations -->
+          <a href="#" class="flex items-center justify-between px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">manage_search</span>
+              <span>Investigations</span>
+            </div>
+            <span class="text-[10px] font-mono text-[#00A3E0]">6 active</span>
+          </a>
+
+          <!-- Analyst Feedback -->
+          <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">rate_review</span>
+            <span>Analyst Feedback</span>
+          </a>
+
+          <div class="px-3 pt-3 pb-1 text-[10px] uppercase font-bold tracking-wider text-[#64748B]">System &amp; Admin</div>
+
+          <!-- System Health -->
+          <a href="#" class="flex items-center justify-between px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">dns</span>
+              <span>System Health</span>
+            </div>
+            <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+          </a>
+
+          <!-- Settings -->
+          <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">settings</span>
+            <span>Settings</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Bottom User Profile & Node Status -->
+      <div class="p-3 border-t border-[#2A313D] bg-[#0A0D12] text-xs">
+        <div class="flex items-center justify-between text-[#94A3B8] text-[11px] font-mono mb-1">
+          <span>HOST: ueba-soc-01</span>
+          <span class="text-[#10B981]">OK</span>
+        </div>
+        <div class="text-[10px] text-[#64748B]">UEBA interface prototype</div>
+      </div>
+    </aside>
+
+    <!-- Main High-Density Workspace -->
+    <main class="flex-1 overflow-y-auto bg-[#0B0F14] p-4 flex flex-col gap-4">
+      <div role="note" class="mb-2 border border-[#F5A623]/40 bg-[#F5A623]/10 text-[#F5C66A] px-3 py-2 text-[11px]">Illustrative prototype data — connect to authenticated backend APIs before operational use.</div>
+
+      
+      <!-- Top Title & Filter Bar -->
+      <div class="flex items-center justify-between border-b border-[#2A313D] pb-3">
+        <div>
+          <h1 class="text-[18px] font-bold text-white tracking-tight flex items-center gap-2">
+            <span>SOC Incident Overview &amp; Threat Posture</span>
+            <span class="text-[11px] font-mono text-[#94A3B8] font-normal">| UTC 2026-11-03 15:42:19</span>
+          </h1>
+          <p class="text-[12px] text-[#94A3B8]">Real-time correlation of entity behavioral baselines, anomaly detections, and user risk scores.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#1A222D] hover:bg-[#2A313D] border border-[#2A313D] text-[12px] text-[#CBD5E1]">
+            <span class="material-symbols-outlined text-[16px] text-[#00A3E0]">download</span>
+            <span>Export Report</span>
+          </button>
+          <button class="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#F58220] hover:bg-[#D96814] text-black font-semibold text-[12px]">
+            <span class="material-symbols-outlined text-[16px]">add_alert</span>
+            <span>New Triage Case</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- High-Density KPI Summary Cards (6 Mandatory Metrics) -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <!-- 1. Total Security Events -->
+        <div class="bg-[#151B24] border border-[#2A313D] rounded p-3 hover:border-[#374151] transition-colors">
+          <div class="flex items-center justify-between text-[#94A3B8] text-[11px] uppercase font-semibold tracking-wider">
+            <span>Total Events</span>
+            <span class="material-symbols-outlined text-[16px] text-[#00A3E0]">dataset</span>
+          </div>
+          <div class="text-[22px] font-bold text-white font-mono mt-1 tabular-nums">142,890</div>
+          <div class="text-[11px] text-[#10B981] font-mono mt-1 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px]">trending_up</span>
+            <span>+4.2% vs avg</span>
+          </div>
+        </div>
+
+        <!-- 2. Total Alerts -->
+        <div class="bg-[#151B24] border border-[#2A313D] rounded p-3 hover:border-[#374151] transition-colors">
+          <div class="flex items-center justify-between text-[#94A3B8] text-[11px] uppercase font-semibold tracking-wider">
+            <span>Total Alerts</span>
+            <span class="material-symbols-outlined text-[16px] text-[#F58220]">warning</span>
+          </div>
+          <div class="text-[22px] font-bold text-white font-mono mt-1 tabular-nums">128</div>
+          <div class="text-[11px] text-[#F5A623] font-mono mt-1 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+            <span>28 open queues</span>
+          </div>
+        </div>
+
+        <!-- 3. Critical Alerts (Red) -->
+        <div class="bg-[#151B24] border border-[#E53935]/40 rounded p-3 bg-gradient-to-b from-[#151B24] to-[#E53935]/5">
+          <div class="flex items-center justify-between text-[#EF5350] text-[11px] uppercase font-bold tracking-wider">
+            <span>Critical Alerts</span>
+            <span class="material-symbols-outlined text-[16px] text-[#E53935]">emergency</span>
+          </div>
+          <div class="text-[22px] font-bold text-[#EF5350] font-mono mt-1 tabular-nums">14</div>
+          <div class="text-[11px] text-[#EF5350] font-mono mt-1 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px]">priority_high</span>
+            <span>Action Required</span>
+          </div>
+        </div>
+
+        <!-- 4. High-Risk Users (Orange) -->
+        <div class="bg-[#151B24] border border-[#F58220]/40 rounded p-3">
+          <div class="flex items-center justify-between text-[#FB923C] text-[11px] uppercase font-bold tracking-wider">
+            <span>High-Risk Users</span>
+            <span class="material-symbols-outlined text-[16px] text-[#F58220]">person_alert</span>
+          </div>
+          <div class="text-[22px] font-bold text-[#FB923C] font-mono mt-1 tabular-nums">9</div>
+          <div class="text-[11px] text-[#94A3B8] font-mono mt-1">Score &gt; 80 / 100</div>
+        </div>
+
+        <!-- 5. Medium-Risk Alerts (Yellow) -->
+        <div class="bg-[#151B24] border border-[#F5A623]/30 rounded p-3">
+          <div class="flex items-center justify-between text-[#FBBF24] text-[11px] uppercase font-semibold tracking-wider">
+            <span>Medium Alerts</span>
+            <span class="material-symbols-outlined text-[16px] text-[#F5A623]">notification_important</span>
+          </div>
+          <div class="text-[22px] font-bold text-[#FBBF24] font-mono mt-1 tabular-nums">42</div>
+          <div class="text-[11px] text-[#94A3B8] font-mono mt-1">Automated triage</div>
+        </div>
+
+        <!-- 6. Resolved Alerts (Green) -->
+        <div class="bg-[#151B24] border border-[#10B981]/30 rounded p-3">
+          <div class="flex items-center justify-between text-[#34D399] text-[11px] uppercase font-semibold tracking-wider">
+            <span>Resolved Alerts</span>
+            <span class="material-symbols-outlined text-[16px] text-[#10B981]">task_alt</span>
+          </div>
+          <div class="text-[22px] font-bold text-[#34D399] font-mono mt-1 tabular-nums">72</div>
+          <div class="text-[11px] text-[#10B981] font-mono mt-1 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px]">check</span>
+            <span>56.2% closed</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Security Activity Visualization Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        
+        <!-- Security Events Over Time (Splunk Line Chart representation) -->
+        <div class="lg:col-span-2 bg-[#151B24] border border-[#2A313D] rounded p-3.5 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <h2 class="text-[13px] font-semibold text-white flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px] text-[#00A3E0]">stacked_line_chart</span>
+                <span>Security Events Over Time (EPS Rate)</span>
+              </h2>
+              <p class="text-[11px] text-[#94A3B8]">Aggregated authentication, network telemetry, and host activity spikes.</p>
+            </div>
+            <div class="flex items-center gap-2 text-[11px] font-mono text-[#94A3B8]">
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#00A3E0]"></span>Auth</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#F58220]"></span>Privilege</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#E53935]"></span>Anomaly</span>
+            </div>
+          </div>
+
+          <!-- SVG Real Data Line Chart Simulation -->
+          <div class="h-44 w-full relative mt-2">
+            <svg class="w-full h-full" viewBox="0 0 700 160" preserveAspectRatio="none">
+              <!-- Grid lines -->
+              <line x1="0" y1="20" x2="700" y2="20" stroke="#2A313D" stroke-dasharray="3,3"></line>
+              <line x1="0" y1="60" x2="700" y2="60" stroke="#2A313D" stroke-dasharray="3,3"></line>
+              <line x1="0" y1="100" x2="700" y2="100" stroke="#2A313D" stroke-dasharray="3,3"></line>
+              <line x1="0" y1="140" x2="700" y2="140" stroke="#2A313D"></line>
+
+              <!-- Auth Stream (Cyan) -->
+              <path d="M 0,110 Q 70,120 140,85 T 280,95 T 420,60 T 560,75 T 700,45" fill="none" stroke="#00A3E0" stroke-width="2"></path>
+              <!-- Privilege Stream (Orange) -->
+              <path d="M 0,135 Q 70,130 140,115 T 280,125 T 420,90 T 560,95 T 700,70" fill="none" stroke="#F58220" stroke-width="2"></path>
+              <!-- Anomaly Stream (Red Spike) -->
+              <path d="M 0,148 Q 140,145 280,140 T 400,138 L 420,40 L 440,130 T 560,135 T 700,120" fill="none" stroke="#E53935" stroke-width="2"></path>
+
+              <!-- Anomaly Marker Callout -->
+              <circle cx="420" cy="40" r="4" fill="#E53935" stroke="#FFFFFF" stroke-width="1.5"></circle>
+            </svg>
+            <div class="absolute top-2 left-64 bg-[#0D1117] border border-[#E53935] px-2 py-0.5 rounded text-[10px] font-mono text-[#EF5350]">
+              Peak Anomaly Spike: 14:15 UTC (User: svc_backup)
+            </div>
+          </div>
+          
+          <div class="flex items-center justify-between text-[10px] text-[#64748B] font-mono pt-2 border-t border-[#2A313D]/50">
+            <span>00:00 UTC</span>
+            <span>04:00</span>
+            <span>08:00</span>
+            <span>12:00</span>
+            <span>16:00</span>
+            <span>20:00</span>
+            <span>NOW</span>
+          </div>
+        </div>
+
+        <!-- Alerts by Severity & Status Distribution (Donut & Distribution Charts) -->
+        <div class="bg-[#151B24] border border-[#2A313D] rounded p-3.5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <h2 class="text-[13px] font-semibold text-white flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px] text-[#F58220]">pie_chart</span>
+                <span>Alerts by Severity &amp; Status</span>
+              </h2>
+            </div>
+            <p class="text-[11px] text-[#94A3B8]">Triage breakdown across 128 registered detections.</p>
+          </div>
+
+          <!-- Donut graphic & metrics -->
+          <div class="flex items-center justify-around py-3">
+            <div class="relative w-28 h-28 flex items-center justify-center">
+              <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                <!-- Background track -->
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#2A313D" stroke-width="4.5"></circle>
+                <!-- Critical (14 / 128 ~ 11%) -->
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#E53935" stroke-width="4.5" stroke-dasharray="10 90" stroke-dashoffset="0"></circle>
+                <!-- High (28 / 128 ~ 22%) -->
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#F58220" stroke-width="4.5" stroke-dasharray="20 80" stroke-dashoffset="-10"></circle>
+                <!-- Medium (42 / 128 ~ 33%) -->
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#F5A623" stroke-width="4.5" stroke-dasharray="30 70" stroke-dashoffset="-30"></circle>
+                <!-- Resolved (44 / 128 ~ 34%) -->
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#10B981" stroke-width="4.5" stroke-dasharray="34 66" stroke-dashoffset="-60"></circle>
+              </svg>
+              <div class="absolute text-center">
+                <span class="text-[18px] font-bold text-white font-mono">128</span>
+                <span class="block text-[9px] uppercase tracking-wider text-[#94A3B8]">Alerts</span>
+              </div>
+            </div>
+
+            <!-- Legend and counts -->
+            <div class="space-y-1.5 text-xs font-mono">
+              <div class="flex items-center justify-between gap-3 text-[#EF5350]">
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#E53935]"></span>Critical:</span>
+                <span class="font-bold">14 (11%)</span>
+              </div>
+              <div class="flex items-center justify-between gap-3 text-[#FB923C]">
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#F58220]"></span>High:</span>
+                <span class="font-bold">28 (22%)</span>
+              </div>
+              <div class="flex items-center justify-between gap-3 text-[#FBBF24]">
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#F5A623]"></span>Medium:</span>
+                <span class="font-bold">42 (33%)</span>
+              </div>
+              <div class="flex items-center justify-between gap-3 text-[#34D399]">
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#10B981]"></span>Resolved:</span>
+                <span class="font-bold">44 (34%)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Risk Score Distribution Histogram mini bar -->
+          <div class="border-t border-[#2A313D] pt-2">
+            <div class="flex justify-between text-[11px] text-[#94A3B8] mb-1 font-sans">
+              <span>Risk Score Distribution (0 - 100)</span>
+              <span class="font-mono text-[#E53935]">9 high-risk users</span>
+            </div>
+            <div class="grid grid-cols-5 gap-1 h-3">
+              <div class="bg-[#10B981]/60 rounded-xs" title="0-20 Low Risk: 65%"></div>
+              <div class="bg-[#00A3E0]/60 rounded-xs" title="21-40 Low: 18%"></div>
+              <div class="bg-[#F5A623]/70 rounded-xs" title="41-60 Med: 11%"></div>
+              <div class="bg-[#F58220]/80 rounded-xs" title="61-80 High: 4%"></div>
+              <div class="bg-[#E53935] rounded-xs" title="81-100 Critical: 2%"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Recent Security Events & Alerts Compact Tables -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-2">
+        
+        <!-- Recent Security Alerts (Active triage table) -->
+        <div class="bg-[#151B24] border border-[#2A313D] rounded flex flex-col">
+          <div class="p-3 border-b border-[#2A313D] flex items-center justify-between bg-[#11161F]">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[#E53935] text-[18px]">crisis_alert</span>
+              <h3 class="font-semibold text-white text-[13px]">Recent Security Alerts</h3>
+            </div>
+            <a href="../alerts/AlertsInvestigation.html" class="text-[11px] text-[#00A3E0] hover:text-[#38BDF8] flex items-center gap-1 font-medium">
+              <span>Open Alerts Monitor</span>
+              <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+            </a>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-[12px] border-collapse">
+              <thead class="bg-[#0D1117] text-[#94A3B8] border-b border-[#2A313D] uppercase text-[10px] font-semibold tracking-wider font-mono">
+                <tr>
+                  <th class="py-2 px-3">Alert</th>
+                  <th class="py-2 px-3">Entity / User</th>
+                  <th class="py-2 px-3">Severity</th>
+                  <th class="py-2 px-3">Risk</th>
+                  <th class="py-2 px-3">Status</th>
+                  <th class="py-2 px-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#2A313D]/50 text-[#CBD5E1]">
+                <tr class="hover:bg-[#1A222D] transition-colors">
+                  <td class="py-2 px-3">
+                    <div class="font-medium text-white flex items-center gap-1.5">
+                      <span class="w-1.5 h-1.5 rounded-full bg-[#E53935]"></span>
+                      <span class="truncate max-w-[160px]">Kerberos Golden Ticket Anomaly</span>
+                    </div>
+                    <span class="text-[10px] font-mono text-[#64748B]">ALT-9402 • 4m ago</span>
+                  </td>
+                  <td class="py-2 px-3 font-mono text-xs text-[#CBD5E1]">svc_backup</td>
+                  <td class="py-2 px-3">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E53935]/20 text-[#EF5350] border border-[#E53935]/40 uppercase">Critical</span>
+                  </td>
+                  <td class="py-2 px-3 font-mono text-[#EF5350] font-bold">94</td>
+                  <td class="py-2 px-3">
+                    <span class="text-[11px] font-mono text-[#F5A623]">Investigating</span>
+                  </td>
+                  <td class="py-2 px-3 text-right">
+                    <a href="../alerts/AlertsInvestigation.html" class="px-2 py-1 bg-[#1A222D] hover:bg-[#F58220] hover:text-black text-[#00A3E0] rounded text-[11px] font-medium transition-colors">Triage</a>
+                  </td>
+                </tr>
+
+                <tr class="hover:bg-[#1A222D] transition-colors">
+                  <td class="py-2 px-3">
+                    <div class="font-medium text-white flex items-center gap-1.5">
+                      <span class="w-1.5 h-1.5 rounded-full bg-[#F58220]"></span>
+                      <span class="truncate max-w-[160px]">Impossible Travel Velocity</span>
+                    </div>
+                    <span class="text-[10px] font-mono text-[#64748B]">ALT-9398 • 18m ago</span>
+                  </td>
+                  <td class="py-2 px-3 font-mono text-xs text-[#CBD5E1]">jdoe@corp</td>
+                  <td class="py-2 px-3">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#F58220]/20 text-[#FB923C] border border-[#F58220]/40 uppercase">High</span>
+                  </td>
+                  <td class="py-2 px-3 font-mono text-[#FB923C] font-bold">78</td>
+                  <td class="py-2 px-3">
+                    <span class="text-[11px] font-mono text-[#CBD5E1]">Open</span>
+                  </td>
+                  <td class="py-2 px-3 text-right">
+                    <a href="../alerts/AlertsInvestigation.html" class="px-2 py-1 bg-[#1A222D] hover:bg-[#F58220] hover:text-black text-[#00A3E0] rounded text-[11px] font-medium transition-colors">Triage</a>
+                  </td>
+                </tr>
+
+                <tr class="hover:bg-[#1A222D] transition-colors">
+                  <td class="py-2 px-3">
+                    <div class="font-medium text-white flex items-center gap-1.5">
+                      <span class="w-1.5 h-1.5 rounded-full bg-[#F5A623]"></span>
+                      <span class="truncate max-w-[160px]">Bulk DB Export Outside Hours</span>
+                    </div>
+                    <span class="text-[10px] font-mono text-[#64748B]">ALT-9382 • 45m ago</span>
+                  </td>
+                  <td class="py-2 px-3 font-mono text-xs text-[#CBD5E1]">dchen@corp</td>
+                  <td class="py-2 px-3">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#F5A623]/20 text-[#FBBF24] border border-[#F5A623]/40 uppercase">Medium</span>
+                  </td>
+                  <td class="py-2 px-3 font-mono text-[#FBBF24] font-bold">58</td>
+                  <td class="py-2 px-3">
+                    <span class="text-[11px] font-mono text-[#10B981]">Resolved</span>
+                  </td>
+                  <td class="py-2 px-3 text-right">
+                    <a href="../alerts/AlertsInvestigation.html" class="px-2 py-1 bg-[#1A222D] hover:bg-[#F58220] hover:text-black text-[#00A3E0] rounded text-[11px] font-medium transition-colors">Triage</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Recent Security Events (Raw stream feed) -->
+        <div class="bg-[#151B24] border border-[#2A313D] rounded flex flex-col">
+          <div class="p-3 border-b border-[#2A313D] flex items-center justify-between bg-[#11161F]">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[#00A3E0] text-[18px]">terminal</span>
+              <h3 class="font-semibold text-white text-[13px]">Recent Security Events Stream</h3>
+            </div>
+            <span class="text-[11px] font-mono text-[#10B981] flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-ping"></span>
+              <span>12 EPS</span>
+            </span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-[12px] border-collapse font-mono">
+              <thead class="bg-[#0D1117] text-[#94A3B8] border-b border-[#2A313D] uppercase text-[10px] font-semibold tracking-wider">
+                <tr>
+                  <th class="py-2 px-3">Event ID</th>
+                  <th class="py-2 px-3">Timestamp</th>
+                  <th class="py-2 px-3">Type</th>
+                  <th class="py-2 px-3">Source IP</th>
+                  <th class="py-2 px-3">User</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#2A313D]/50 text-[#CBD5E1] text-[11px]">
+                <tr class="hover:bg-[#1A222D] transition-colors">
+                  <td class="py-2 px-3 text-[#00A3E0]">EVT-89412</td>
+                  <td class="py-2 px-3 text-[#94A3B8]">15:41:02</td>
+                  <td class="py-2 px-3 font-sans text-white">Privilege Escalation (sudo)</td>
+                  <td class="py-2 px-3 text-[#94A3B8]">10.142.12.89</td>
+                  <td class="py-2 px-3 text-[#F58220]">svc_backup</td>
+                </tr>
+                <tr class="hover:bg-[#1A222D] transition-colors">
+                  <td class="py-2 px-3 text-[#00A3E0]">EVT-89411</td>
+                  <td class="py-2 px-3 text-[#94A3B8]">15:39:54</td>
+                  <td class="py-2 px-3 font-sans text-white">OAuth Token Refresh</td>
+                  <td class="py-2 px-3 text-[#94A3B8]">172.56.21.90</td>
+                  <td class="py-2 px-3 text-[#CBD5E1]">jdoe@corp</td>
+                </tr>
+                <tr class="hover:bg-[#1A222D] transition-colors">
+                  <td class="py-2 px-3 text-[#00A3E0]">EVT-89410</td>
+                  <td class="py-2 px-3 text-[#94A3B8]">15:38:12</td>
+                  <td class="py-2 px-3 font-sans text-white">SSH Session Opened</td>
+                  <td class="py-2 px-3 text-[#94A3B8]">192.168.1.104</td>
+                  <td class="py-2 px-3 text-[#CBD5E1]">dchen@corp</td>
+                </tr>
+                <tr class="hover:bg-[#1A222D] transition-colors">
+                  <td class="py-2 px-3 text-[#00A3E0]">EVT-89409</td>
+                  <td class="py-2 px-3 text-[#94A3B8]">15:36:40</td>
+                  <td class="py-2 px-3 font-sans text-white">MFA Push Accepted</td>
+                  <td class="py-2 px-3 text-[#94A3B8]">198.51.100.22</td>
+                  <td class="py-2 px-3 text-[#CBD5E1]">mturner@corp</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+
+
+</body></html>
