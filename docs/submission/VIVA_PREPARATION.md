@@ -1,6 +1,6 @@
 # UEBA Platform Viva Preparation
 
-These sample answers describe this repository's current implementation. They distinguish active rule-based behavior from offline experimental ML.
+These sample answers describe this repository's current implementation. They distinguish active rule-based behavior from the offline synthetic-only ML demo API and experiment.
 
 ## UEBA and SOC fundamentals
 
@@ -208,9 +208,9 @@ React builds the interface from reusable components and state. TypeScript gives 
 
 `App.tsx` stores the selected page in React state and renders the corresponding feature component. React Router is not used.
 
-### 50. Why are ML Analytics and AI SOC Assistant disabled?
+### 50. What does the ML Analytics page do, and what remains planned?
 
-There is no ML metrics/detection API or AI assistant integration in the application. The sidebar labels these capabilities “Planned / Not connected” instead of implying functionality.
+The ML Analytics page calls `GET /ml-analytics/demo`, which reads the bundled synthetic fixture, fits the existing experiment in memory, and returns four demo cases plus held-out synthetic benchmark metrics. It does not use live events or create alerts. AI SOC Assistant remains “Planned / Not connected.”
 
 ### 51. Why are ML predictions not connected to operational alerts?
 

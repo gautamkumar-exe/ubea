@@ -6,6 +6,8 @@ This document proposes a future architecture for operational ML Analytics in the
 
 The design keeps ML detection separate from the active rule-based detector until a candidate has passed data-quality, validation, security, and analyst-review gates. It must not present synthetic reports as live model results.
 
+**Current update:** a clearly labeled ML Analytics page is backed by `GET /ml-analytics/demo`. It recomputes only the bundled synthetic demonstration and held-out evaluation in memory. It is not an event inference/status API and has no database or alert side effects. The operational architecture below remains a future design for any approved live/shadow integration.
+
 ## Architectural principles
 
 1. **Keep evidence provenance.** Every displayed model, metric, and detection must be returned by a backend record tied to a model version, evaluation run, data window, and feature schema.
@@ -82,7 +84,7 @@ Exact routes and schemas are a future design decision. A practical first contrac
 
 ## ML Analytics interface design
 
-Use the existing React/TypeScript state-driven navigation and dark SOC component system. The current `frontend/src/layout/Sidebar.tsx` keeps ML Analytics disabled; it should remain planned until the required backend status and read APIs return real, supportable data.
+Use the existing React/TypeScript state-driven navigation and dark SOC component system. The current ML Analytics page presents only the synthetic demonstration and explicitly labeled benchmark metrics from `GET /ml-analytics/demo`. Future model-status, registry, production-evaluation, and persisted-detection screens remain out of scope until corresponding backend data exists.
 
 | UI area | Display when backend evidence exists | Empty/unavailable behavior |
 | --- | --- | --- |

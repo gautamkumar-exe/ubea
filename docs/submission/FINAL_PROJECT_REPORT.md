@@ -122,7 +122,7 @@ The separate offline ML workflow is detailed in [SYSTEM_ARCHITECTURE.md](SYSTEM_
 
 ## 10. Backend architecture
 
-`backend/app/main.py` creates the FastAPI application, configures local CORS origins, and includes the event, baseline, anomaly, alert, and feedback routers. `backend/app/database.py` creates a SQLAlchemy engine/session factory from `backend/app/config.py`. Route handlers validate input with Pydantic, use SQLAlchemy models and commit state changes.
+`backend/app/main.py` creates the FastAPI application, configures local CORS origins, and includes the event, baseline, anomaly, alert, feedback, and demo-only ML routers. `backend/app/database.py` creates a SQLAlchemy engine/session factory from `backend/app/config.py`. Route handlers validate input with Pydantic, use SQLAlchemy models and commit state changes; the ML demo route does not use the database.
 
 Key modules:
 
@@ -135,11 +135,12 @@ Key modules:
 | `app/services/anomaly.py` | Rule score, severity, reasons, and note. |
 | `app/api/routes/alerts.py` | Alert listing, detail, and status update. |
 | `app/api/routes/feedback.py` | Feedback submission and history for alerts. |
+| `app/api/routes/ml_analytics.py`, `app/services/ml_analytics.py` | Read-only `GET /ml-analytics/demo` for the bundled synthetic demonstration and held-out benchmark evaluation. |
 | `app/services/ml_dataset.py`, `ml_experiments.py` | Offline snapshot validation, training, evaluation, and local artifacts. |
 
 ## 11. Frontend architecture
 
-`frontend/src/App.tsx` uses React component state to select the active page; navigation is not URL-router based. The sidebar exposes Overview, Security Alerts, User Analytics, and Events. ML Analytics and AI SOC Assistant are marked “Planned / Not connected.” The feature components call functions in `frontend/src/api.ts`. The API base defaults to `http://127.0.0.1:8001` and can be overridden at build/dev time by `VITE_API_BASE_URL`.
+`frontend/src/App.tsx` uses React component state to select the active page; navigation is not URL-router based. The sidebar exposes Overview, Security Alerts, User Analytics, Events, and a functional synthetic-only ML Analytics page. AI SOC Assistant remains “Planned / Not connected.” The feature components call functions in `frontend/src/api.ts`. The API base defaults to `http://127.0.0.1:8001` and can be overridden at build/dev time by `VITE_API_BASE_URL`.
 
 | Component | Role |
 | --- | --- |
@@ -147,6 +148,7 @@ Key modules:
 | `AlertsFeature.tsx`, `AlertDetailsDialog.tsx` | Alert filters/table, investigation evidence, status updates, feedback form/history. |
 | `EventsFeature.tsx`, `EventDetailsDialog.tsx` | Supported event filters, pagination, event details, source metadata, and action to run explicit rule analysis. |
 | `UserAnalyticsFeature.tsx` | User ID lookup from sampled event/alert results or typed input, saved baseline, rebuild, related alert/event activity, and rule-analysis result. |
+| `MlAnalyticsFeature.tsx` | Calls the read-only demo endpoint on button click; presents model configuration, synthetic test metrics/confusion matrix, scenario breakdown, and four feature/score examples. |
 | `Sidebar.tsx`, `PageHeader.tsx` | Global navigation, API status and page heading/refresh controls. |
 
 User ID discovery is not a directory API: the UI samples up to the first 100 event records and first 100 alerts returned by their APIs. Baseline rebuild replaces the saved aggregate using every stored event for that user.
@@ -190,7 +192,7 @@ The score is capped at 100. Severity mapping is low below 30, medium from 30, hi
 
 The offline ML path consists of:
 
-1. A read-only PostgreSQL extractor applies an inclusive cutoff.
+1. A read-only PostgreSQL extractor applies an inclusive cutoff for snapshot experiments. The separate demo page does not read PostgreSQL.
 2. The snapshot builder deduplicates records, validates timestamps, pseudonymizes identifiers and valid IPs with namespace-separated HMAC, generates point-in-time features, and writes manifest/split metadata.
 3. Chronological 70/15/15 split manifests keep equal-time records together. Snapshots must declare `development` or `test` provenance and feature version `ueba-seven-v2`; production and unclassified snapshots are rejected for training.
 4. The experiment loader verifies snapshot digest, schema, feature order/version, provenance, and splits. The experiment fits `StandardScaler` and Isolation Forest on training features only. IDs, event times, and labels are not model inputs.
@@ -240,7 +242,7 @@ Five-seed mean F1 was **0.7082** on the same synthetic benchmark design. The lea
 
 ## 19. Demonstration output
 
-The offline demo fits on the synthetic chronological training partition and scores a normal login, unusual login hour, unfamiliar source IP, and high-frequency login example. It reports input fields, all seven features, decision score, prediction, and context. The expected demonstration outcomes for the checked-in fixture and default parameters are included in [ML_DEMO_GUIDE.md](../ml/ML_DEMO_GUIDE.md). The demo is not connected to the application API or alert table.
+The demo-only `GET /ml-analytics/demo` endpoint fits on the synthetic chronological training partition, scores a normal login, unusual login hour, unfamiliar source IP, and high-frequency login example, and evaluates the held-out synthetic test rows. The React page presents input fields, all seven features, decision score, prediction, benchmark metrics, and confusion matrix. This route does not read the event database or connect to the alert table. See [ML_DEMO_GUIDE.md](../ml/ML_DEMO_GUIDE.md).
 
 ## 20. Screenshots
 

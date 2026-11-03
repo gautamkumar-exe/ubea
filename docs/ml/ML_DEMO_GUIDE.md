@@ -2,7 +2,7 @@
 
 ## Purpose and boundaries
 
-This guide runs the experimental UEBA feature and anomaly-scoring workflow locally, offline, using only the committed synthetic benchmark fixture and additional in-memory synthetic events. It does not query a database, send data externally, change operational rule-based detection, or connect model predictions to alerts. Every demonstration result is synthetic and is not production performance.
+This guide runs the experimental UEBA feature and anomaly-scoring workflow locally using only the committed synthetic benchmark fixture and additional in-memory synthetic events. The `GET /ml-analytics/demo` endpoint and ML Analytics page expose this same computation. The endpoint does not query a database, accept caller-provided paths or commands, send data externally, change operational rule-based detection, or connect model predictions to alerts. Every demonstration result is synthetic and is not production performance.
 
 The implementation uses the shared feature specification `ueba-seven-v2` in `backend/app/services/ml_feature_engine.py`, exposed through `ml_features.py` and the snapshot builder. The demo trains an Isolation Forest using only the fixture's chronological training feature vectors. The benchmark's scenario labels are not passed to model fitting. Four new example events are then converted with the same v2 event feature function and scored.
 
@@ -10,7 +10,7 @@ The implementation uses the shared feature specification `ueba-seven-v2` in `bac
 
 1. The dataset pipeline reads security-event fields, applies deterministic point-in-time feature generation and privacy controls, and writes versioned offline snapshots. See [ML_DATASET_PIPELINE.md](ML_DATASET_PIPELINE.md).
 2. The experiment code validates snapshot schema/version/splits or loads the explicitly synthetic benchmark, fits preprocessing and Isolation Forest on training rows only, then evaluates held-out rows. Snapshot experiments have no trustworthy event-level labels and therefore report score distributions and anomaly counts rather than supervised metrics. See [ML_TRAINING_AND_EVALUATION.md](ML_TRAINING_AND_EVALUATION.md).
-3. The demo script `backend/scripts/demo_ml_anomaly.py` trains from the benchmark's chronological train split and scores four controlled events using `features_for_event`. The model decision is `decision_function < 0` with the configured detector contamination. It prints JSON with event inputs, v2 features, decision score, decision, and context.
+3. `backend/app/services/ml_analytics.py` trains from the benchmark's chronological train split, scores four controlled events using `features_for_event`, and evaluates the model on the held-out synthetic test split. The script `backend/scripts/demo_ml_anomaly.py` and read-only `GET /ml-analytics/demo` API call this service. The endpoint reads a fixed bundled fixture, returns data in memory, and writes no experiment files. The model decision is `decision_function < 0` with the configured detector contamination.
 
 Isolation Forest is retained because this project has no trusted event-level labels for snapshot data, and it is already implemented as an unsupervised experimental candidate. This is a practical demonstration choice, not evidence that it is the best algorithm or suitable for production. Contamination and the decision threshold strongly affect results; see the quality reports.
 
@@ -40,6 +40,8 @@ PYTHONPATH=. ../.venv312/bin/python -m scripts.demo_ml_anomaly
 ```
 
 Optional configuration is available through `--fixture`, `--contamination`, `--random-state`, and `--n-estimators`. The default fixture is `backend/scripts/reports/synthetic_events.csv`; the default model configuration is contamination `0.05`, random state `42`, and `100` estimators. The command prints JSON to stdout and creates no artifact files.
+
+Open **ML Analytics** in the sidebar and select **Run offline demonstration** to request the same data from the backend. The page presents model configuration, synthetic benchmark metrics/confusion matrix, per-scenario test results, and the four separate demonstration inputs with their feature values and scores. The endpoint recomputes results on each request; it does not call the CLI or execute a shell command.
 
 The four output scenarios are:
 

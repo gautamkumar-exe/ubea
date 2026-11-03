@@ -21,6 +21,11 @@ const PAGE_META: Record<WorkspacePage, { eyebrow: string; title: string; descrip
     title: "User Analytics",
     description: "Inspect observed user activity, saved behavioral baselines, and rule-based event analysis.",
   },
+  ml: {
+    eyebrow: "EXPERIMENTAL / OFFLINE MODEL ANALYTICS",
+    title: "ML Analytics",
+    description: "Run the synthetic Isolation Forest demonstration and inspect its experimental evaluation.",
+  },
 };
 
 interface PageHeaderProps {

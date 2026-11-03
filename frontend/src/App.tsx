@@ -6,6 +6,7 @@ import { OverviewFeature } from "./features/overview/OverviewFeature";
 import { AlertsFeature } from "./features/alerts/AlertsFeature";
 import { EventsFeature } from "./features/events/EventsFeature";
 import { UserAnalyticsFeature } from "./features/analytics/UserAnalyticsFeature";
+import { MlAnalyticsFeature } from "./features/ml/MlAnalyticsFeature";
 import { errorMessage } from "./lib/format";
 import "./App.css";
 
@@ -75,6 +76,7 @@ function App() {
         {activePage === "alerts" && <AlertsFeature mode="alerts" refreshToken={refreshToken} />}
         {activePage === "events" && <EventsFeature refreshToken={refreshToken} onAnalyzeEvent={navigateToAnalysis} />}
         {activePage === "analytics" && <UserAnalyticsFeature initialEventId={initialEventId} onAnalysisComplete={refreshWorkspace} />}
+        {activePage === "ml" && <MlAnalyticsFeature />}
 
         <footer className="app-footer"><span>UEBA SECURITY PLATFORM</span><span className="footer-separator">/</span><span>RULE-BASED DETECTION</span><span className="footer-separator">/</span><span>Refresh interval: 15 seconds</span></footer>
       </main>

@@ -1,4 +1,4 @@
-export type WorkspacePage = "overview" | "alerts" | "events" | "analytics";
+export type WorkspacePage = "overview" | "alerts" | "events" | "analytics" | "ml";
 
 interface SidebarProps {
   activePage: WorkspacePage;
@@ -15,10 +15,10 @@ const NAV_ITEMS: { id: WorkspacePage; label: string; icon: string }[] = [
   { id: "alerts", label: "Security Alerts", icon: "◈" },
   { id: "analytics", label: "User Analytics", icon: "◎" },
   { id: "events", label: "Events", icon: "⌁" },
+  { id: "ml", label: "ML Analytics", icon: "◌" },
 ];
 
 const PLANNED_ITEMS = [
-  { label: "ML Analytics", icon: "⌁" },
   { label: "AI SOC Assistant", icon: "✳" },
 ];
 

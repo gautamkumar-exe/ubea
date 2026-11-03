@@ -1,14 +1,14 @@
 # ML Current State
 
-**Inspection date:** 2026-11-03
+**Inspection date:** 2026-11-04
 
-**Scope:** repository inspection only. No model was trained, deployed, or changed for this assessment.
+**Scope:** current repository state after adding the synthetic-only demo API/UI. The endpoint trains an in-memory model from the bundled fixture on demand; no model is persisted, deployed, or used for live-event inference.
 
 ## Executive assessment
 
-The repository contains an experimental, in-process Isolation Forest implementation, a seven-feature builder, and offline scripts that evaluate the detector against a committed synthetic dataset. These are research and smoke-test assets, not an operational ML service. There is no persisted trained model, ML inference route, model registry, training history, or stored ML detection record.
+The repository contains an experimental Isolation Forest implementation, a seven-feature builder, and offline scripts that evaluate the detector against a committed synthetic dataset. A demo-only API and UI run the bundled synthetic demonstration. There is no persisted production model, live-event inference route, model registry, training history, or stored ML detection record.
 
-The active event-analysis route is rule-based. It reads a saved per-user baseline, assigns a 0–100 rule risk score, and may create or update an alert. It does not call the ML detector. ML Analytics remains a disabled “Planned / Not connected” navigation item in `frontend/src/layout/Sidebar.tsx`.
+The active event-analysis route is rule-based. It reads a saved per-user baseline, assigns a 0–100 rule risk score, and may create or update an alert. It does not call the ML detector. The ML Analytics page and `GET /ml-analytics/demo` endpoint expose only the fixed bundled synthetic demonstration; the endpoint has no database dependency and does not create alerts. There is still no live-event ML inference route.
 
 The current data supports code-path testing and exploratory comparison only. The committed test data is generated, small, and labeled from a few prearranged scenarios; its evaluation metrics do not establish performance on actual security telemetry.
 
@@ -16,19 +16,20 @@ The current data supports code-path testing and exploratory comparison only. The
 
 | Path | Current responsibility | Status |
 | --- | --- | --- |
-| `backend/app/services/ml_anomaly.py` | Defines `MLAnomalyDetector`, an `IsolationForest` plus `StandardScaler`, seven fixed feature names, an in-memory `fit`, and `score`. | Functional library prototype; not wired into a route or event ingestion. The class and output explicitly call the result experimental. |
-| `backend/app/services/ml_features.py` | Produces event-time features from strictly earlier history; includes database helpers for one-event features and historical training rows. | Functional feature helper. No application route currently calls its database helpers. |
+| `backend/app/services/ml_analytics.py`, `backend/app/api/routes/ml_analytics.py` | In-memory synthetic demo/test evaluation and `GET /ml-analytics/demo`. | Demo-only API; it reads the bundled fixture, does not connect to the database, and does not persist artifacts or alerts. |
+| `backend/app/services/ml_anomaly.py` | Defines `MLAnomalyDetector`, an `IsolationForest` plus `StandardScaler`, seven fixed feature names, an in-memory `fit`, and `score`. | Used by offline scripts and synthetic demo service; not used for live event inference or ingestion. The result is experimental. |
+| `backend/app/services/ml_features.py` | Produces event-time features from strictly earlier history; includes database helpers for one-event features and historical training rows. | Shared event feature function is used by the synthetic demo. Its database helpers are not called by an application route. |
 | `backend/scripts/generate_synthetic_events.py` | Deterministically generates five synthetic users across 60 days, with normal events and injected unfamiliar-IP / unusual-hour cases. | Reproducible synthetic fixture generator. |
 | `backend/scripts/evaluate_ml.py` | Runs a chronological per-user 80/20 train/test split, fits per-user detectors on normal training rows, and writes event-level and summary CSV/JSON reports. | Offline experiment only. Does not save a fitted model. |
 | `backend/scripts/compare_contamination.py` | Repeats the synthetic evaluation with contamination settings 0.01, 0.02, 0.03, and 0.05. | Offline parameter comparison only. |
 | `backend/scripts/reports/synthetic_events.csv` | Generated synthetic input with `user_id`, `event_time`, `event_type`, `source_ip`, and `scenario`. | 1,515 rows; not production telemetry. |
 | `backend/scripts/reports/ml_evaluation.csv` | Event-level holdout output including scenario label, prediction, decision score, feature values, and training-row count. | 305 synthetic holdout rows; not an inference log from the application. |
-| `backend/scripts/reports/ml_evaluation_summary.json` | Summary of the committed synthetic evaluation. | Static experiment output; no API exposes or refreshes it. |
+| `backend/scripts/reports/ml_evaluation_summary.json` | Legacy summary of a synthetic evaluation. | Static experiment output; the demo endpoint recomputes its separate current benchmark metrics from the bundled fixture. |
 | `backend/scripts/reports/contamination_comparison.json` | Static results from the four-setting synthetic comparison. | Static experiment output; not model-selection evidence for production. |
-| `backend/tests/test_ml_anomaly.py` | Tests unfitted scoring rejection, too-small training input rejection, and a synthetic fit/score smoke path. | Unit-level smoke coverage; no saved-artifact, route, database, or live-event integration coverage. |
+| `backend/tests/test_ml_anomaly.py`, `test_ml_analytics_api.py` | Test detector behavior and the synthetic demonstration endpoint. | Synthetic-only tests; no saved-artifact, database-backed ML, or live-event inference coverage. |
 | `backend/tests/test_ml_features.py` | Tests feature construction, familiarity/frequency behavior, and that later events do not affect an earlier event's features. | Unit-level feature coverage; no test for mixed-user histories or online inference. |
 | `backend/requirements.txt` | Lists `scikit-learn` without a pinned version. | Reproduction/versioning gap. |
-| `UEBA_README.md` | States that ML development is paused and ML files are not part of the active workflow. | Consistent with the code and routes inspected. |
+| `UEBA_README.md` | Documents the synthetic-only ML demo page/API and local application setup. | Live event inference remains explicitly out of scope. |
 
 No serialized model files (`.pkl`, `.joblib`, `.onnx`, `.pt`, `.model`, or `.h5`) were found under `backend/app` or `backend/scripts`.
 
@@ -74,7 +75,7 @@ The committed `ml_evaluation_summary.json` reports an Isolation Forest with 80/2
 
 The report itself warns that synthetic metrics do not establish real-world security detection performance. The results imply 25 false alerts in this fixture; the high accuracy should not be used as a readiness argument in an imbalanced security workload. `contamination_comparison.json` reports different precision/recall tradeoffs across its four settings, all on the same synthetic design. None of these static results should be represented in a production UI as current model performance.
 
-Training currently occurs only when the offline scripts instantiate and fit in-memory detectors. The scripts persist evaluation rows and summary reports, not model weights or fitted scalers. There is no production training window, scheduled or authorized training job, independent validation set, model promotion/deployment process, reproducible runtime lock, or rollback workflow.
+Training occurs in the offline scripts and on demand for the synthetic demo API, using only the bundled generated fixture. The API demo fits in memory per request and does not persist a model or experiment artifacts. There is no production training window, scheduled/authorized training job, independent real-data validation, model promotion/deployment process, reproducible runtime lock, or rollback workflow.
 
 ## Detection boundary
 
@@ -86,7 +87,7 @@ The active endpoint is `POST /anomalies/analyze/{event_id}` in `backend/app/api/
 - creates or updates an alert at the rule threshold; and
 - stores `detection_method: "rule_based"` with rule reasons and baseline event count in alert evidence.
 
-The route does not import `ml_anomaly.py` or `ml_features.py`. Event ingestion in `backend/app/api/routes/events.py` stores events but does not trigger ML training or inference. ML and rule-based detections are therefore separate today: only the latter is active, persisted as alerts, and exposed by the existing APIs.
+The route does not import `ml_anomaly.py` or `ml_features.py`. Event ingestion in `backend/app/api/routes/events.py` stores events but does not trigger ML training or inference. The separate `GET /ml-analytics/demo` route reads no event records and produces no alerts. Only rule-based detections are persisted as operational alerts.
 
 ## Readiness summary
 
@@ -99,5 +100,5 @@ The route does not import `ml_anomaly.py` or `ml_features.py`. Event ingestion i
 | Online inference | Not available. No inference route or ingestion integration. |
 | ML result persistence | Not available. Current `Alert.evidence` represents the rule-based detection route. |
 | Model lifecycle/versioning | Not available. No registry, artifact hash, training-run record, or version metadata. |
-| Analyst UI data source | Not available. ML Analytics is intentionally disabled in the sidebar. |
+| Analyst UI data source | Available for the bundled synthetic demo via `GET /ml-analytics/demo`; no database-backed ML status, live detections, or production evaluation data. |
 

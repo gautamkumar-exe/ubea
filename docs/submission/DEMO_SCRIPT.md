@@ -100,14 +100,14 @@ Open **User Analytics**, select/enter `demo.user.001`, and show observed event a
 
 ### Offline Isolation Forest demo (about 1 minute)
 
-In Terminal 4:
+First use the ML Analytics sidebar page and click **Run offline demonstration**. It calls read-only `GET /ml-analytics/demo`, which reads only the bundled synthetic fixture, computes results in memory, and does not query PostgreSQL or write artifacts. Alternatively, run the same service from Terminal 4:
 
 ```sh
 cd backend
 PYTHONPATH=. ../.venv312/bin/python -m scripts.demo_ml_anomaly
 ```
 
-Point out that this script trains from the synthetic fixture's chronological training split and then scores four in-memory examples. It does not query PostgreSQL, call the API, or create alerts. It prints all seven features, decision score, and threshold decision. Do not call the score a probability or claim the context is feature attribution.
+Point out that this script trains from the synthetic fixture's chronological training split, scores four in-memory examples, and evaluates the held-out synthetic test partition. It does not query PostgreSQL, create alerts, or persist artifacts. The UI and CLI show the seven features, decision scores, threshold decisions, and synthetic benchmark metrics. Do not call a score a probability or claim the context is feature attribution.
 
 ### Evaluation result and limitations (about 1 minute)
 

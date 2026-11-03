@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document describes the components currently present in the repository. The operational path is rule-based. The ML path is an offline experimental toolchain and is not a realtime service, does not run during event ingestion, and does not create operational alerts.
+This document describes the components currently present in the repository. The operational alert path is rule-based. ML Analytics is a demo-only API/UI over the bundled synthetic fixture; it does not score stored/live events, run during ingestion, or create operational alerts.
 
 ## Operational architecture
 
@@ -16,6 +16,7 @@ flowchart LR
     SPA --> AlertsUI[Security Alerts page]
     SPA --> EventsUI[Events page]
     SPA --> UsersUI[User Analytics page]
+    SPA --> MLU[ML Analytics page]
 
     API --> Ingest[POST /events]
     Ingest -->|insert / idempotent duplicate check| EventTable[(security_events)]
@@ -36,7 +37,10 @@ flowchart LR
     API --> AlertRoutes[GET/PATCH /alerts]
     AlertRoutes --> AlertTable
     API --> FeedbackRoutes[POST/GET /alerts/{id}/feedback]
+    API --> MLDemo[GET /ml-analytics/demo]
     FeedbackRoutes --> FeedbackTable[(analyst_feedback)]
+    MLDemo --> DemoService[In-memory synthetic demo service]
+    DemoService -. reads bundled fixture only .-> SyntheticFixture[Committed synthetic CSV]
     AlertRoutes --> FeedbackUI[Alert investigation dialog]
     FeedbackRoutes --> FeedbackTable
 ```
@@ -108,12 +112,13 @@ erDiagram
 
 ## Frontend components
 
-`App.tsx` owns state-driven page navigation and global refresh. The `Sidebar` entries are Overview, Security Alerts, User Analytics, and Events. It presents ML Analytics and AI SOC Assistant as disabled planned items. `PageHeader` describes the active page and invokes refresh. Page components use typed functions in `frontend/src/api.ts`.
+`App.tsx` owns state-driven page navigation and global refresh. The `Sidebar` entries are Overview, Security Alerts, User Analytics, Events, and ML Analytics; AI SOC Assistant remains disabled/planned. `PageHeader` describes the active page and invokes refresh. Page components use typed functions in `frontend/src/api.ts`.
 
 - Overview calls filtered alert list requests to obtain global response totals and displays latest alerts and events.
 - Alerts supports backend severity/status filtering and text search within the currently loaded page, then opens the alert investigation dialog.
 - Events supports only backend-provided event filters and pagination. It can open details or navigate to User Analytics to explicitly analyze a stored event.
 - User Analytics suggests identifiers found in up to 100 returned events and alerts (not a complete directory), reads/rebuilds a baseline, shows related event/alert pages, and displays rule-analysis results.
+- ML Analytics calls `GET /ml-analytics/demo` only when requested and displays synthetic model/demo/evaluation values. The endpoint has no database dependency and creates no artifacts or alerts.
 
 ## Offline experimental ML workflow
 
@@ -121,6 +126,11 @@ This diagram is separate from the operational diagrams above.
 
 ```mermaid
 flowchart LR
+    MLU[ML Analytics page] -->|button requests demo| DemoAPI[GET /ml-analytics/demo]
+    DemoAPI --> DemoSvc[In-memory demo service]
+    FixtureCSV[(Bundled synthetic CSV)] --> DemoSvc
+    DemoSvc -->|JSON: scenarios and held-out metrics| MLU
+
     Source[(PostgreSQL event records)] -->|read-only query, inclusive cutoff| Extract[Offline snapshot CLI]
     Extract --> Dedup[Deduplication and input checks]
     Dedup --> Pseudo[Namespace-separated HMAC pseudonyms]
@@ -135,10 +145,11 @@ flowchart LR
     Scenarios[Synthetic scenario labels] -. evaluation only .-> Eval
 
     RULE[Operational rule analysis] --> ALERT[Operational alerts]
-    Artifacts -. no online serving or alert connection .-> ALERT
+    DemoSvc -. no live-event inference or alert connection .-> ALERT
+    Artifacts -. no production serving .-> ALERT
 ```
 
-The HMAC key stays in the local environment and is not written into snapshot reports. A key ID may be recorded for reproducibility; it is not the key. Snapshot environment provenance is a defense-in-depth declaration, not cryptographic proof of origin. Training loaders accept development/test snapshots and reject production, unclassified, or legacy v1 feature semantics. The included snapshot-to-model validation uses synthetic records in a disposable PostgreSQL cluster.
+The demo API reads only the fixed committed synthetic CSV and builds results in memory; it never accepts a path or command from a caller. The separate snapshot pipeline reads PostgreSQL in read-only mode. Its HMAC key stays in the local environment and is not written into snapshot reports. A key ID may be recorded for reproducibility; it is not the key. Snapshot environment provenance is a defense-in-depth declaration, not cryptographic proof of origin. Training loaders accept development/test snapshots and reject production, unclassified, or legacy v1 feature semantics. Snapshot-to-model validation uses synthetic records in a disposable PostgreSQL cluster.
 
 ### Feature vector
 

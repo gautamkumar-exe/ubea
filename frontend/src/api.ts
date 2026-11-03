@@ -110,6 +110,76 @@ export interface FeedbackListResponse {
   total: number;
 }
 
+export interface MLAnalyticsDemo {
+  demonstration_type: string;
+  feature_specification_version: string;
+  fixture_sha256: string;
+  model: {
+    name: string;
+    implementation: string;
+    feature_specification_version: string;
+    features: string[];
+    configuration: {
+      contamination: number;
+      random_state: number;
+      n_estimators: number;
+    };
+    training: {
+      records: number;
+      partition: string;
+      scenario_labels_used_for_fit: false;
+    };
+    decision_rule: {
+      score_name: string;
+      operator: string;
+      threshold: number;
+      note: string;
+    };
+  };
+  training: Record<string, unknown>;
+  features: string[];
+  threshold: string;
+  results: Array<{
+    scenario: string;
+    input_event: {
+      user_id: string;
+      event_time_utc: string;
+      event_type: string;
+      source_ip: string;
+    };
+    features: Record<string, number>;
+    decision_score: number;
+    prediction: "ANOMALY" | "NOT FLAGGED";
+    threshold_rule: string;
+    context: string;
+    interpretation: string;
+  }>;
+  benchmark_evaluation: {
+    dataset_kind: string;
+    evaluation_status: string;
+    label_source: string;
+    fixture_sha256: string;
+    feature_specification_version: string;
+    evaluation_split: string;
+    test_records: number;
+    threshold: string;
+    metrics: {
+      precision: number;
+      recall: number;
+      f1: number;
+      false_positive_rate: number | null;
+      confusion_matrix: { labels: string[]; values: number[][] };
+    };
+    scenario_results: Record<string, {
+      support: number;
+      predicted_anomalies: number;
+      predicted_anomaly_rate: number | null;
+    }>;
+    warning: string;
+  };
+  warning: string;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -134,6 +204,10 @@ async function request<T>(
 
 export function getHealth(): Promise<HealthResponse> {
   return request<HealthResponse>("/health");
+}
+
+export function runMLAnalyticsDemo(signal?: AbortSignal): Promise<MLAnalyticsDemo> {
+  return request<MLAnalyticsDemo>("/ml-analytics/demo", { signal, cache: "no-store" });
 }
 
 export function getAlerts(
