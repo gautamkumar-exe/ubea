@@ -8,6 +8,7 @@ import ipaddress
 import json
 import math
 import os
+import re
 import tempfile
 from collections import Counter, defaultdict, deque
 from dataclasses import dataclass
@@ -30,12 +31,17 @@ CSV_FIELDS = (
 class SnapshotOptions:
     cutoff: datetime
     hmac_key: bytes
+    key_id: str = "local-v1"
 
     def __post_init__(self) -> None:
         if not _aware(self.cutoff):
             raise ValueError("cutoff must be timezone-aware")
-        if len(self.hmac_key) < 32:
+        if not isinstance(self.hmac_key, bytes) or len(self.hmac_key) < 32:
             raise ValueError("HMAC key must contain at least 32 bytes")
+        if not isinstance(self.key_id, str) or not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", self.key_id
+        ):
+            raise ValueError("HMAC key ID must be 1-64 safe ASCII characters")
 
 
 def _aware(value: object) -> bool:
@@ -241,7 +247,11 @@ def build_snapshot(events: Iterable[object], options: SnapshotOptions) -> tuple[
         split_counts[split] += 1
         row: dict[str, object] = {
             "event_key": _stable_record_key(event, options.hmac_key),
-            "subject_key": _token(options.hmac_key, kind or "subject-untyped", identity),
+            "subject_key": _token(
+                options.hmac_key,
+                f"subject:{kind}" if kind else "subject:untyped",
+                identity,
+            ),
             "subject_type": kind or None,
             "user_key": _token(options.hmac_key, "user", user),
             "entity_key": _token(options.hmac_key, "entity", getattr(event, "entity_id", None)),
@@ -269,11 +279,22 @@ def build_snapshot(events: Iterable[object], options: SnapshotOptions) -> tuple[
         rows.append(row)
     rows.sort(key=lambda row: (row["event_time_utc"] or "", row["event_key"]))
     csv_data = _csv_bytes(rows)
-    snapshot_id = hashlib.sha256((FEATURE_SCHEMA_VERSION + "\0" + cutoff.isoformat() + "\0").encode() + csv_data).hexdigest()
+    snapshot_id = hashlib.sha256(
+        (
+            FEATURE_SCHEMA_VERSION
+            + "\0"
+            + options.key_id
+            + "\0"
+            + cutoff.isoformat()
+            + "\0"
+        ).encode()
+        + csv_data
+    ).hexdigest()
     metadata: dict[str, object] = {
         "snapshot_id": snapshot_id,
         "snapshot_version": "1",
         "pipeline_version": "offline-dataset-snapshot-v1",
+        "pseudonymization_key_id": options.key_id,
         "feature_schema_version": FEATURE_SCHEMA_VERSION,
         "source_model": "app.models.security_event.SecurityEvent",
         "source_selection": "security_events where event_time <= inclusive cutoff; ordered by event_time and primary key",

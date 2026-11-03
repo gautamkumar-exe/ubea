@@ -209,7 +209,7 @@ def test_database_reader_declares_read_only_transaction(monkeypatch):
             return []
 
     class _Session:
-        def __init__(self, engine):
+        def __init__(self, engine, **kwargs):
             pass
 
         def __enter__(self):
