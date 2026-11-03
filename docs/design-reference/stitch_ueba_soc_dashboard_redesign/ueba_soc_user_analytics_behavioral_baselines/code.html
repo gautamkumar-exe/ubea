@@ -1,0 +1,474 @@
+<!DOCTYPE html><html lang="en" class="dark"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UEBA SOC - User Analytics &amp; Behavioral Baselines</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'primary': '#F58220',
+            'secondary': '#00A3E0',
+            'critical': '#E53935',
+            'high': '#F58220',
+            'warning': '#F5A623',
+            'medium': '#F5A623',
+            'low': '#00A3E0',
+            'success': '#10B981',
+            'border-base': '#2A313D',
+            'border-light': '#374151',
+            'surface-dark': '#0B0F14',
+            'surface-sidebar': '#0D1117',
+            'surface-card': '#151B24',
+            'surface-panel': '#1A222D',
+          },
+          fontFamily: {
+            sans: ['"Instrument Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"Source Code Pro"', 'Consolas', 'monospace'],
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Source+Code+Pro:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #0B0F14;
+      color: #F1F5F9;
+      font-family: 'Instrument Sans', sans-serif;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0D1117;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2A313D;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body class="h-[1024px] w-screen overflow-hidden flex flex-col antialiased select-none text-[13px]" data-stitch-vh="h-[1024px]===h-screen">
+
+  <!-- Top Global Navigation Bar (Matching App Shell) -->
+  <header class="h-12 bg-[#0D1117] border-b border-[#2A313D] px-4 flex items-center justify-between shrink-0 z-30">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded bg-[#F58220] flex items-center justify-center font-bold text-black text-xs tracking-tighter">
+          UE
+        </div>
+        <span class="font-bold text-[14px] tracking-wide text-white flex items-center gap-1.5">
+          <span>UEBA</span>
+          <span class="text-[11px] font-semibold text-[#F58220] uppercase px-1.5 py-0.2 bg-[#F58220]/15 border border-[#F58220]/30 rounded">SOC Core</span>
+        </span>
+      </div>
+      <div class="h-4 w-px bg-[#2A313D] mx-1"></div>
+      
+      <div class="relative w-80">
+        <span class="material-symbols-outlined absolute left-2.5 top-2 text-[#94A3B8] text-[18px]">search</span>
+        <input type="text" placeholder="search entity=user department=&#34;DevOps&#34;" class="w-full bg-[#151B24] border border-[#2A313D] rounded py-1 pl-8 pr-3 text-[12px] text-[#F1F5F9] font-mono placeholder-[#64748B] focus:outline-none focus:border-[#F58220] transition-colors">
+      </div>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="flex items-center gap-2.5">
+      <div class="flex items-center bg-[#151B24] border border-[#2A313D] rounded px-2.5 py-1 text-xs text-[#CBD5E1] cursor-pointer hover:border-[#374151]">
+        <span class="material-symbols-outlined text-[16px] text-[#F58220] mr-1.5">schedule</span>
+        <span class="font-medium text-[12px]">Last 7 Days</span>
+        <span class="material-symbols-outlined text-[16px] text-[#64748B] ml-1">expand_more</span>
+      </div>
+
+      <button class="flex items-center gap-1 bg-[#151B24] border border-[#2A313D] rounded px-2.5 py-1 text-[12px] text-[#CBD5E1]">
+        <span class="material-symbols-outlined text-[16px] text-[#00A3E0]">refresh</span>
+        <span class="font-medium">60s</span>
+      </button>
+
+      <div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#10B981]/10 border border-[#10B981]/30 text-[11px] font-mono text-[#34D399]">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+        <span>API: CONNECTED</span>
+      </div>
+
+      <div class="h-4 w-px bg-[#2A313D]"></div>
+
+      <button class="relative p-1 text-[#94A3B8] hover:text-white rounded hover:bg-[#151B24]">
+        <span class="material-symbols-outlined text-[20px]">notifications</span>
+        <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E53935]"></span>
+      </button>
+
+      <div class="flex items-center gap-2 pl-1 cursor-pointer">
+        <div class="w-6 h-6 rounded bg-[#1A222D] border border-[#2A313D] flex items-center justify-center font-bold text-xs text-[#00A3E0]">
+          SA
+        </div>
+        <div class="flex flex-col text-left leading-tight hidden md:flex">
+          <span class="text-[12px] font-semibold text-[#F1F5F9]">s.analyst</span>
+          <span class="text-[10px] text-[#94A3B8]">SOC Tier 2</span>
+        </div>
+      </div>
+    </div>
+  <div class="hidden" aria-hidden="true">Static design prototype: displayed metrics and entities are illustrative, not live telemetry.</div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Left Persistent Collapsible Sidebar Navigation -->
+    <aside class="w-56 bg-[#0D1117] border-r border-[#2A313D] flex flex-col justify-between shrink-0">
+      <div class="py-2 flex flex-col overflow-y-auto">
+        <div class="px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider text-[#64748B]">Monitoring &amp; Triage</div>
+
+        <nav class="space-y-0.5 px-2">
+          <a href="../overview/OverviewDashboard.html" class="flex items-center justify-between px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">dashboard</span>
+              <span>Overview</span>
+            </div>
+          </a>
+
+          <a href="#" class="flex items-center justify-between px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">dataset</span>
+              <span>Security Events</span>
+            </div>
+            <span class="text-[10px] font-mono text-[#64748B]">142.8k</span>
+          </a>
+
+          <a href="../alerts/AlertsInvestigation.html" class="flex items-center justify-between px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">warning</span>
+              <span>Security Alerts</span>
+            </div>
+            <span class="text-[10px] font-bold font-mono bg-[#E53935]/20 text-[#EF5350] px-1.5 py-0.2 rounded">14</span>
+          </a>
+
+          <a href="#" aria-label="ML Analytics (not wired in static prototype)" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9]">
+            <span class="material-symbols-outlined text-[18px]">psychology</span><span>ML Analytics</span>
+          </a>
+          <a href="#" aria-label="AI SOC Assistant (not wired in static prototype)" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9]">
+            <span class="material-symbols-outlined text-[18px]">smart_toy</span><span>AI SOC Assistant</span>
+          </a>
+          <div class="px-3 pt-3 pb-1 text-[10px] uppercase font-bold tracking-wider text-[#64748B]">Behavioral Intelligence</div>
+
+          <!-- Active User Analytics & Behavioral Baselines -->
+          <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded bg-[#F58220]/15 text-[#F58220] font-medium border-l-2 border-[#F58220]">
+            <span class="material-symbols-outlined text-[18px]">person_search</span>
+            <span>User Analytics</span>
+          </a>
+
+          <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">hub</span>
+            <span>Entity Behavior</span>
+          </a>
+
+          <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">tune</span>
+            <span>Behavioral Baselines</span>
+          </a>
+
+          <a href="#" class="flex items-center justify-between px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">manage_search</span>
+              <span>Investigations</span>
+            </div>
+            <span class="text-[10px] font-mono text-[#00A3E0]">6 active</span>
+          </a>
+
+          <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">rate_review</span>
+            <span>Analyst Feedback</span>
+          </a>
+
+          <div class="px-3 pt-3 pb-1 text-[10px] uppercase font-bold tracking-wider text-[#64748B]">System &amp; Admin</div>
+
+          <a href="#" class="flex items-center justify-between px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">dns</span>
+              <span>System Health</span>
+            </div>
+            <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+          </a>
+
+          <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">settings</span>
+            <span>Settings</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="p-3 border-t border-[#2A313D] bg-[#0A0D12] text-xs">
+        <div class="flex items-center justify-between text-[#94A3B8] text-[11px] font-mono mb-1">
+          <span>HOST: ueba-soc-01</span>
+          <span class="text-[#10B981]">OK</span>
+        </div>
+        <div class="text-[10px] text-[#64748B]">UEBA interface prototype</div>
+      </div>
+    </aside>
+
+    <!-- Main Content: User Analytics & Baseline Rebuild Workspace -->
+    <main class="flex-1 overflow-y-auto bg-[#0B0F14] p-4 flex flex-col gap-4">
+      <div role="note" class="mb-2 border border-[#F5A623]/40 bg-[#F5A623]/10 text-[#F5C66A] px-3 py-2 text-[11px]">Illustrative prototype data — connect to authenticated backend APIs before operational use.</div>
+
+      
+      <!-- Top Title & Baseline Action Header -->
+      <div class="flex items-center justify-between border-b border-[#2A313D] pb-3">
+        <div>
+          <h1 class="text-[18px] font-bold text-white tracking-tight flex items-center gap-2">
+            <span>User Analytics &amp; Behavioral Baselines</span>
+            <span class="text-[11px] font-mono text-[#94A3B8] font-normal">| Entity Profiler</span>
+          </h1>
+          <p class="text-[12px] text-[#94A3B8]">Continuous monitoring of user normal behavior models, anomaly thresholds, and baseline calibration.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- Rebuild Baseline Action (Connected to backend requirement) -->
+          <button class="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#F58220] hover:bg-[#D96814] text-black font-semibold text-[12px] transition-colors shadow-sm">
+            <span class="material-symbols-outlined text-[16px]">sync</span>
+            <span>Rebuild All Baselines</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- User Risk Tier Summaries -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div class="bg-[#151B24] border border-[#2A313D] rounded p-3">
+          <div class="text-[11px] uppercase font-semibold text-[#94A3B8] font-mono">Monitored User Accounts</div>
+          <div class="text-[20px] font-bold text-white font-mono mt-1">1,480</div>
+          <div class="text-[11px] text-[#10B981] font-mono mt-0.5">Active directory synced</div>
+        </div>
+        <div class="bg-[#151B24] border border-[#E53935]/40 rounded p-3">
+          <div class="text-[11px] uppercase font-bold text-[#EF5350] font-mono">High Risk (&gt;80)</div>
+          <div class="text-[20px] font-bold text-[#EF5350] font-mono mt-1">9 Accounts</div>
+          <div class="text-[11px] text-[#EF5350] font-mono mt-0.5">Critical observation list</div>
+        </div>
+        <div class="bg-[#151B24] border border-[#F5A623]/30 rounded p-3">
+          <div class="text-[11px] uppercase font-semibold text-[#FBBF24] font-mono">Elevated Deviation</div>
+          <div class="text-[20px] font-bold text-[#FBBF24] font-mono mt-1">34 Accounts</div>
+          <div class="text-[11px] text-[#94A3B8] font-mono mt-0.5">Variance &gt; 3.0 sigma</div>
+        </div>
+        <div class="bg-[#151B24] border border-[#10B981]/30 rounded p-3">
+          <div class="text-[11px] uppercase font-semibold text-[#34D399] font-mono">Baselines Calibrated</div>
+          <div class="text-[20px] font-bold text-[#34D399] font-mono mt-1">98.2%</div>
+          <div class="text-[11px] text-[#94A3B8] font-mono mt-0.5">Last rebuild: 1hr ago</div>
+        </div>
+      </div>
+
+      <!-- User Analytics Grid Table -->
+      <div class="bg-[#151B24] border border-[#2A313D] rounded flex flex-col">
+        <div class="p-3 border-b border-[#2A313D] flex items-center justify-between bg-[#11161F]">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[#F58220] text-[18px]">group</span>
+            <h3 class="font-semibold text-white text-[13px]">User Behavioral Entity Profiles</h3>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" placeholder="Filter by user ID..." class="bg-[#0D1117] border border-[#2A313D] text-[11px] text-white px-2 py-1 rounded font-mono focus:outline-none focus:border-[#F58220]">
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-[12px] border-collapse">
+            <thead class="bg-[#0D1117] text-[#94A3B8] border-b border-[#2A313D] uppercase text-[10px] font-semibold tracking-wider font-mono">
+              <tr>
+                <th class="py-2.5 px-3">User ID</th>
+                <th class="py-2.5 px-3">Risk Score</th>
+                <th class="py-2.5 px-3">Security Events</th>
+                <th class="py-2.5 px-3">Triggered Alerts</th>
+                <th class="py-2.5 px-3">Behavioral Activity Profile</th>
+                <th class="py-2.5 px-3">Baseline Status</th>
+                <th class="py-2.5 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#2A313D]/50 text-[#CBD5E1]">
+              <!-- User 1 -->
+              <tr class="hover:bg-[#1A222D] transition-colors">
+                <td class="py-2.5 px-3">
+                  <div class="font-mono text-white font-bold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-[#E53935]"></span>
+                    <span>svc_backup</span>
+                  </div>
+                  <div class="text-[10px] text-[#94A3B8]">Domain Service Account</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-[#E53935]/20 text-[#EF5350] border border-[#E53935]/40">94 / 100</span>
+                </td>
+                <td class="py-2.5 px-3 font-mono text-white">41,209</td>
+                <td class="py-2.5 px-3 font-mono text-[#EF5350] font-bold">5 critical</td>
+                <td class="py-2.5 px-3">
+                  <div class="text-[11px] text-white">Off-hours Kerberos ticket requests to DC</div>
+                  <div class="text-[10px] text-[#94A3B8] font-mono">Primary IP: 10.142.12.89</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <span class="text-[10px] font-mono bg-[#E53935]/20 text-[#EF5350] px-1.5 py-0.5 rounded">Baseline Breached</span>
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button class="px-2.5 py-1 bg-[#1A222D] hover:bg-[#F58220] hover:text-black text-[#00A3E0] rounded text-[11px] font-medium font-sans">
+                    Rebuild Baseline
+                  </button>
+                </td>
+              </tr>
+
+              <!-- User 2 -->
+              <tr class="hover:bg-[#1A222D] transition-colors">
+                <td class="py-2.5 px-3">
+                  <div class="font-mono text-white font-bold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-[#F58220]"></span>
+                    <span>jdoe@corp</span>
+                  </div>
+                  <div class="text-[10px] text-[#94A3B8]">Senior DevOps Engineer</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-[#F58220]/20 text-[#FB923C] border border-[#F58220]/40">78 / 100</span>
+                </td>
+                <td class="py-2.5 px-3 font-mono text-white">12,840</td>
+                <td class="py-2.5 px-3 font-mono text-[#FB923C] font-bold">2 high</td>
+                <td class="py-2.5 px-3">
+                  <div class="text-[11px] text-white">Anomalous GeoIP travel speed</div>
+                  <div class="text-[10px] text-[#94A3B8] font-mono">Primary IP: 172.56.21.90</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <span class="text-[10px] font-mono bg-[#F58220]/20 text-[#FB923C] px-1.5 py-0.5 rounded">Geo Anomaly</span>
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button class="px-2.5 py-1 bg-[#1A222D] hover:bg-[#F58220] hover:text-black text-[#00A3E0] rounded text-[11px] font-medium font-sans">
+                    Rebuild Baseline
+                  </button>
+                </td>
+              </tr>
+
+              <!-- User 3 -->
+              <tr class="hover:bg-[#1A222D] transition-colors">
+                <td class="py-2.5 px-3">
+                  <div class="font-mono text-white font-bold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-[#F5A623]"></span>
+                    <span>dchen@corp</span>
+                  </div>
+                  <div class="text-[10px] text-[#94A3B8]">Database Administrator</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-[#F5A623]/20 text-[#FBBF24] border border-[#F5A623]/40">58 / 100</span>
+                </td>
+                <td class="py-2.5 px-3 font-mono text-white">8,914</td>
+                <td class="py-2.5 px-3 font-mono text-[#FBBF24]">1 medium</td>
+                <td class="py-2.5 px-3">
+                  <div class="text-[11px] text-white">Elevated S3 egress volume</div>
+                  <div class="text-[10px] text-[#94A3B8] font-mono">Primary IP: 192.168.1.104</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <span class="text-[10px] font-mono bg-[#10B981]/20 text-[#34D399] px-1.5 py-0.5 rounded">Calibrated</span>
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button class="px-2.5 py-1 bg-[#1A222D] hover:bg-[#F58220] hover:text-black text-[#00A3E0] rounded text-[11px] font-medium font-sans">
+                    Rebuild Baseline
+                  </button>
+                </td>
+              </tr>
+
+              <!-- User 4 -->
+              <tr class="hover:bg-[#1A222D] transition-colors">
+                <td class="py-2.5 px-3">
+                  <div class="font-mono text-white font-bold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+                    <span>mturner@corp</span>
+                  </div>
+                  <div class="text-[10px] text-[#94A3B8]">Security Analyst</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-[#10B981]/20 text-[#34D399] border border-[#10B981]/40">12 / 100</span>
+                </td>
+                <td class="py-2.5 px-3 font-mono text-white">4,210</td>
+                <td class="py-2.5 px-3 font-mono text-[#10B981]">0 active</td>
+                <td class="py-2.5 px-3">
+                  <div class="text-[11px] text-white">Standard enterprise SOC analyst console access</div>
+                  <div class="text-[10px] text-[#94A3B8] font-mono">Primary IP: 198.51.100.22</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <span class="text-[10px] font-mono bg-[#10B981]/20 text-[#34D399] px-1.5 py-0.5 rounded">Calibrated</span>
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button class="px-2.5 py-1 bg-[#1A222D] hover:bg-[#F58220] hover:text-black text-[#00A3E0] rounded text-[11px] font-medium font-sans">
+                    Rebuild Baseline
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Behavioral Baseline Configuration & Model Metrics (Requirement 8) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        
+        <div class="bg-[#151B24] border border-[#2A313D] rounded p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-white text-[13px] flex items-center gap-2">
+              <span class="material-symbols-outlined text-[#00A3E0] text-[18px]">tune</span>
+              <span>Behavioral Baseline Model Calibration</span>
+            </h3>
+            <span class="text-[11px] font-mono text-[#10B981]">Engine v3.2 Active</span>
+          </div>
+
+          <div class="space-y-3 text-[12px]">
+            <div class="bg-[#0D1117] p-2.5 rounded border border-[#2A313D] font-mono text-[11px] space-y-1">
+              <div class="flex justify-between"><span class="text-[#94A3B8]">Baseline Window:</span> <span class="text-white">30 Days Sliding Window</span></div>
+              <div class="flex justify-between"><span class="text-[#94A3B8]">Standard Deviation Threshold:</span> <span class="text-[#F58220]">3.5 Sigma</span></div>
+              <div class="flex justify-between"><span class="text-[#94A3B8]">Last Full Baseline Run:</span> <span class="text-white">2026-11-03 14:00:00 UTC</span></div>
+              <div class="flex justify-between"><span class="text-[#94A3B8]">Feature Dimensions:</span> <span class="text-white">Auth time, Egress bytes, Source ASN, TGS lifetime</span></div>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <p class="text-[11px] text-[#94A3B8]">Rebuilding refreshes Gaussian distribution parameters across all entities.</p>
+              <button class="px-3 py-1.5 rounded bg-[#F58220] hover:bg-[#D96814] text-black font-semibold text-[11px] transition-colors">
+                Trigger Full Rebuild
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Health Quick Diagnostic (Requirement 10) -->
+        <div class="bg-[#151B24] border border-[#2A313D] rounded p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-white text-[13px] flex items-center gap-2">
+              <span class="material-symbols-outlined text-[#10B981] text-[18px]">health_and_safety</span>
+              <span>Backend &amp; Database Connectivity Status</span>
+            </h3>
+            <span class="text-[11px] font-mono text-[#10B981] uppercase font-bold">Healthy</span>
+          </div>
+
+          <div class="space-y-2 text-[12px] font-mono">
+            <div class="flex items-center justify-between p-2 rounded bg-[#0D1117] border border-[#2A313D]">
+              <span class="text-[#CBD5E1]">FastAPI Backend Gateway (/api/v1/health)</span>
+              <span class="text-[#10B981] font-bold flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+                <span>Connected (14ms)</span>
+              </span>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded bg-[#0D1117] border border-[#2A313D]">
+              <span class="text-[#CBD5E1]">PostgreSQL Cluster (ORM Session Pool)</span>
+              <span class="text-[#10B981] font-bold flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+                <span>Connected (Pool 8/20)</span>
+              </span>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded bg-[#0D1117] border border-[#2A313D]">
+              <span class="text-[#CBD5E1]">UEBA Baseline Calculation Worker</span>
+              <span class="text-[#10B981] font-bold flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+                <span>Idle / Ready</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+
+
+</body></html>

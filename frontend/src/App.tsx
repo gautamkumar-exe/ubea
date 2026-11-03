@@ -12,6 +12,8 @@ import "./App.css";
 
 function App() {
   const [activePage, setActivePage] = useState<WorkspacePage>("overview");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
   const [healthError, setHealthError] = useState("");
   const [refreshToken, setRefreshToken] = useState(0);
@@ -34,6 +36,15 @@ function App() {
     return () => window.clearInterval(timer);
   }, [checkHealth, refreshToken]);
 
+  useEffect(() => {
+    if (!mobileSidebarOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileSidebarOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mobileSidebarOpen]);
+
   function refreshWorkspace() {
     setRefreshToken((current) => current + 1);
   }
@@ -44,10 +55,19 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
-      <Sidebar activePage={activePage} onNavigate={setActivePage} apiStatus={apiStatus} />
+    <div className={`app-shell${sidebarCollapsed ? " app-shell--sidebar-collapsed" : ""}`}>
+      <Sidebar
+        activePage={activePage}
+        onNavigate={setActivePage}
+        apiStatus={apiStatus}
+        collapsed={sidebarCollapsed}
+        mobileOpen={mobileSidebarOpen}
+        onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
+        onCloseMobile={() => setMobileSidebarOpen(false)}
+      />
+      {mobileSidebarOpen && <button type="button" className="sidebar-backdrop" aria-label="Close navigation" onClick={() => setMobileSidebarOpen(false)} />}
       <main className="main-panel">
-        <PageHeader page={activePage} onRefresh={refreshWorkspace} />
+        <PageHeader page={activePage} onRefresh={refreshWorkspace} onOpenNavigation={() => setMobileSidebarOpen(true)} />
         {healthError && <div className="inline-message inline-message--error app-health-message" role="alert"><span><strong>Backend health check failed.</strong> {healthError}</span><button type="button" className="text-button" onClick={() => void checkHealth()}>Retry</button></div>}
 
         {activePage === "overview" && <AlertsFeature mode="overview" refreshToken={refreshToken} />}

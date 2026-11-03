@@ -8,17 +8,17 @@ const PAGE_META: Record<WorkspacePage, { eyebrow: string; title: string; descrip
   },
   alerts: {
     eyebrow: "SECURITY OPERATIONS / ALERT MANAGEMENT",
-    title: "Security alerts",
+    title: "Security Alerts",
     description: "Search, prioritize, investigate, and resolve detected activity.",
   },
   events: {
     eyebrow: "TELEMETRY / EVENT PIPELINE",
-    title: "Event activity",
+    title: "Events",
     description: "Ingest and inspect security events before running rule-based analysis.",
   },
   analytics: {
     eyebrow: "DETECTION / BEHAVIORAL ANALYTICS",
-    title: "Behavioral analytics",
+    title: "User Analytics",
     description: "Manage user baselines and investigate events with the rule-based engine.",
   },
 };
@@ -26,12 +26,17 @@ const PAGE_META: Record<WorkspacePage, { eyebrow: string; title: string; descrip
 interface PageHeaderProps {
   page: WorkspacePage;
   onRefresh: () => void;
+  onOpenNavigation: () => void;
 }
 
-export function PageHeader({ page, onRefresh }: PageHeaderProps) {
+export function PageHeader({ page, onRefresh, onOpenNavigation }: PageHeaderProps) {
   const meta = PAGE_META[page];
   return (
     <header className="page-header">
+      <button type="button" className="page-header__menu" onClick={onOpenNavigation} aria-label="Open navigation" aria-controls="main-navigation">
+        <span aria-hidden="true">☰</span>
+        <span>Menu</span>
+      </button>
       <div className="page-header__copy">
         <div className="eyebrow">{meta.eyebrow}</div>
         <h1>{meta.title}</h1>

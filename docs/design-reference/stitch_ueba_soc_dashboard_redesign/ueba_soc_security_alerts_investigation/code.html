@@ -1,0 +1,528 @@
+<!DOCTYPE html><html lang="en" class="dark"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UEBA SOC - Security Alerts &amp; Investigation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'primary': '#F58220',
+            'secondary': '#00A3E0',
+            'critical': '#E53935',
+            'high': '#F58220',
+            'warning': '#F5A623',
+            'medium': '#F5A623',
+            'low': '#00A3E0',
+            'success': '#10B981',
+            'border-base': '#2A313D',
+            'border-light': '#374151',
+            'surface-dark': '#0B0F14',
+            'surface-sidebar': '#0D1117',
+            'surface-card': '#151B24',
+            'surface-panel': '#1A222D',
+          },
+          fontFamily: {
+            sans: ['"Instrument Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"Source Code Pro"', 'Consolas', 'monospace'],
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Source+Code+Pro:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #0B0F14;
+      color: #F1F5F9;
+      font-family: 'Instrument Sans', sans-serif;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0D1117;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2A313D;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body class="h-[1024px] w-screen overflow-hidden flex flex-col antialiased select-none text-[13px]" data-stitch-vh="h-[1024px]===h-screen">
+
+  <!-- Top Global Navigation Bar (Matching App Shell) -->
+  <header class="h-12 bg-[#0D1117] border-b border-[#2A313D] px-4 flex items-center justify-between shrink-0 z-30">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded bg-[#F58220] flex items-center justify-center font-bold text-black text-xs tracking-tighter">
+          UE
+        </div>
+        <span class="font-bold text-[14px] tracking-wide text-white flex items-center gap-1.5">
+          <span>UEBA</span>
+          <span class="text-[11px] font-semibold text-[#F58220] uppercase px-1.5 py-0.2 bg-[#F58220]/15 border border-[#F58220]/30 rounded">SOC Core</span>
+        </span>
+      </div>
+      <div class="h-4 w-px bg-[#2A313D] mx-1"></div>
+      
+      <!-- Global Search Bar -->
+      <div class="relative w-80">
+        <span class="material-symbols-outlined absolute left-2.5 top-2 text-[#94A3B8] text-[18px]">search</span>
+        <input type="text" placeholder="search alert_id=&#34;ALT-9402&#34; OR user=&#34;svc_backup&#34;" value="alert_id=&#34;ALT-9402&#34;" class="w-full bg-[#151B24] border border-[#2A313D] rounded py-1 pl-8 pr-3 text-[12px] text-[#F1F5F9] font-mono placeholder-[#64748B] focus:outline-none focus:border-[#F58220] transition-colors">
+      </div>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="flex items-center gap-2.5">
+      <div class="flex items-center bg-[#151B24] border border-[#2A313D] rounded px-2.5 py-1 text-xs text-[#CBD5E1] cursor-pointer hover:border-[#374151]">
+        <span class="material-symbols-outlined text-[16px] text-[#F58220] mr-1.5">schedule</span>
+        <span class="font-medium text-[12px]">Last 24 Hours</span>
+        <span class="material-symbols-outlined text-[16px] text-[#64748B] ml-1">expand_more</span>
+      </div>
+
+      <button class="flex items-center gap-1 bg-[#151B24] border border-[#2A313D] rounded px-2.5 py-1 text-[12px] text-[#CBD5E1]">
+        <span class="material-symbols-outlined text-[16px] text-[#00A3E0]">refresh</span>
+        <span class="font-medium">30s</span>
+      </button>
+
+      <div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#10B981]/10 border border-[#10B981]/30 text-[11px] font-mono text-[#34D399]">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+        <span>API: CONNECTED</span>
+      </div>
+
+      <div class="h-4 w-px bg-[#2A313D]"></div>
+
+      <button class="relative p-1 text-[#94A3B8] hover:text-white rounded hover:bg-[#151B24]">
+        <span class="material-symbols-outlined text-[20px]">notifications</span>
+        <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E53935]"></span>
+      </button>
+
+      <div class="flex items-center gap-2 pl-1 cursor-pointer">
+        <div class="w-6 h-6 rounded bg-[#1A222D] border border-[#2A313D] flex items-center justify-center font-bold text-xs text-[#00A3E0]">
+          SA
+        </div>
+        <div class="flex flex-col text-left leading-tight hidden md:flex">
+          <span class="text-[12px] font-semibold text-[#F1F5F9]">s.analyst</span>
+          <span class="text-[10px] text-[#94A3B8]">SOC Tier 2</span>
+        </div>
+      </div>
+    </div>
+  <div class="hidden" aria-hidden="true">Static design prototype: displayed metrics and entities are illustrative, not live telemetry.</div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Left Persistent Collapsible Sidebar Navigation -->
+    <aside class="w-56 bg-[#0D1117] border-r border-[#2A313D] flex flex-col justify-between shrink-0">
+      <div class="py-2 flex flex-col overflow-y-auto">
+        <div class="px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider text-[#64748B]">Monitoring &amp; Triage</div>
+
+        <nav class="space-y-0.5 px-2">
+          <a href="../overview/OverviewDashboard.html" class="flex items-center justify-between px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">dashboard</span>
+              <span>Overview</span>
+            </div>
+          </a>
+
+          <a href="#" class="flex items-center justify-between px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">dataset</span>
+              <span>Security Events</span>
+            </div>
+            <span class="text-[10px] font-mono text-[#64748B]">142.8k</span>
+          </a>
+
+          <!-- Active Security Alerts -->
+          <a href="#" class="flex items-center justify-between px-2.5 py-1.5 rounded bg-[#F58220]/15 text-[#F58220] font-medium border-l-2 border-[#F58220]">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">warning</span>
+              <span>Security Alerts</span>
+            </div>
+            <span class="text-[10px] font-bold font-mono bg-[#E53935]/20 text-[#EF5350] px-1.5 py-0.2 rounded">14</span>
+          </a>
+
+          <a href="#" aria-label="ML Analytics (not wired in static prototype)" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9]">
+            <span class="material-symbols-outlined text-[18px]">psychology</span><span>ML Analytics</span>
+          </a>
+          <a href="#" aria-label="AI SOC Assistant (not wired in static prototype)" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9]">
+            <span class="material-symbols-outlined text-[18px]">smart_toy</span><span>AI SOC Assistant</span>
+          </a>
+          <div class="px-3 pt-3 pb-1 text-[10px] uppercase font-bold tracking-wider text-[#64748B]">Behavioral Intelligence</div>
+
+          <a href="../analytics/UserAnalyticsBaselines.html" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">person_search</span>
+            <span>User Analytics</span>
+          </a>
+
+          <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">hub</span>
+            <span>Entity Behavior</span>
+          </a>
+
+          <a href="../analytics/UserAnalyticsBaselines.html" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">tune</span>
+            <span>Behavioral Baselines</span>
+          </a>
+
+          <a href="#" class="flex items-center justify-between px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">manage_search</span>
+              <span>Investigations</span>
+            </div>
+            <span class="text-[10px] font-mono text-[#00A3E0]">6 active</span>
+          </a>
+
+          <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">rate_review</span>
+            <span>Analyst Feedback</span>
+          </a>
+
+          <div class="px-3 pt-3 pb-1 text-[10px] uppercase font-bold tracking-wider text-[#64748B]">System &amp; Admin</div>
+
+          <a href="#" class="flex items-center justify-between px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px]">dns</span>
+              <span>System Health</span>
+            </div>
+            <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+          </a>
+
+          <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[#94A3B8] hover:bg-[#151B24] hover:text-[#F1F5F9] transition-colors">
+            <span class="material-symbols-outlined text-[18px]">settings</span>
+            <span>Settings</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="p-3 border-t border-[#2A313D] bg-[#0A0D12] text-xs">
+        <div class="flex items-center justify-between text-[#94A3B8] text-[11px] font-mono mb-1">
+          <span>HOST: ueba-soc-01</span>
+          <span class="text-[#10B981]">OK</span>
+        </div>
+        <div class="text-[10px] text-[#64748B]">UEBA interface prototype</div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace: Split-Pane SOC Alert Queue & Deep Investigation View -->
+    <main class="flex-1 flex overflow-hidden bg-[#0B0F14]">
+      <div role="note" class="mb-2 border border-[#F5A623]/40 bg-[#F5A623]/10 text-[#F5C66A] px-3 py-2 text-[11px]">Illustrative prototype data — connect to authenticated backend APIs before operational use.</div>
+
+      
+      <!-- Left Pane: Alert Summary & Triage Table -->
+      <section class="w-7/12 border-r border-[#2A313D] flex flex-col overflow-hidden">
+        
+        <!-- Header & Severity Tally -->
+        <div class="p-3 border-b border-[#2A313D] bg-[#11161F] flex flex-col gap-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <h2 class="text-[15px] font-bold text-white">Security Alerts Queue</h2>
+              <span class="px-2 py-0.5 rounded bg-[#1A222D] border border-[#2A313D] text-[11px] font-mono text-[#CBD5E1]">128 Loaded</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="px-2 py-1 bg-[#1A222D] hover:bg-[#2A313D] text-[#CBD5E1] border border-[#2A313D] rounded text-[11px] flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">tune</span>
+                <span>Filters (2 active)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Alert Severity Bar Filters (Total, Critical, High, Medium, Low, Resolved) -->
+          <div class="grid grid-cols-6 gap-1.5 text-center font-mono">
+            <div class="bg-[#151B24] border border-[#2A313D] p-1.5 rounded cursor-pointer hover:border-[#374151]">
+              <div class="text-[10px] text-[#94A3B8] uppercase">Total</div>
+              <div class="text-[14px] font-bold text-white">128</div>
+            </div>
+            <div class="bg-[#E53935]/15 border border-[#E53935]/40 p-1.5 rounded cursor-pointer">
+              <div class="text-[10px] text-[#EF5350] uppercase font-bold">Critical</div>
+              <div class="text-[14px] font-bold text-[#EF5350]">14</div>
+            </div>
+            <div class="bg-[#F58220]/15 border border-[#F58220]/40 p-1.5 rounded cursor-pointer">
+              <div class="text-[10px] text-[#FB923C] uppercase font-bold">High</div>
+              <div class="text-[14px] font-bold text-[#FB923C]">28</div>
+            </div>
+            <div class="bg-[#F5A623]/15 border border-[#F5A623]/40 p-1.5 rounded cursor-pointer">
+              <div class="text-[10px] text-[#FBBF24] uppercase font-bold">Medium</div>
+              <div class="text-[14px] font-bold text-[#FBBF24]">42</div>
+            </div>
+            <div class="bg-[#00A3E0]/15 border border-[#00A3E0]/40 p-1.5 rounded cursor-pointer">
+              <div class="text-[10px] text-[#38BDF8] uppercase font-bold">Low</div>
+              <div class="text-[14px] font-bold text-[#38BDF8]">16</div>
+            </div>
+            <div class="bg-[#10B981]/15 border border-[#10B981]/40 p-1.5 rounded cursor-pointer">
+              <div class="text-[10px] text-[#34D399] uppercase font-bold">Resolved</div>
+              <div class="text-[14px] font-bold text-[#34D399]">28</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alerts Table (Columns: Alert ID, User ID, Description, Severity, Risk Score, Status, Created At, Actions) -->
+        <div class="flex-1 overflow-y-auto">
+          <table class="w-full text-left text-[12px] border-collapse">
+            <thead class="bg-[#0D1117] text-[#94A3B8] border-b border-[#2A313D] uppercase text-[10px] font-semibold tracking-wider font-mono sticky top-0 z-10">
+              <tr>
+                <th class="py-2.5 px-3">Alert ID / Time</th>
+                <th class="py-2.5 px-3">User ID</th>
+                <th class="py-2.5 px-3">Title / Description</th>
+                <th class="py-2.5 px-3">Severity</th>
+                <th class="py-2.5 px-3">Risk</th>
+                <th class="py-2.5 px-3">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#2A313D]/50 text-[#CBD5E1]">
+              <!-- Selected Alert Row (ALT-9402) -->
+              <tr class="bg-[#1A222D] border-l-2 border-[#F58220] cursor-pointer">
+                <td class="py-2.5 px-3">
+                  <div class="font-mono text-[#00A3E0] font-bold">ALT-9402</div>
+                  <div class="text-[10px] font-mono text-[#94A3B8]">15:38:12 UTC</div>
+                </td>
+                <td class="py-2.5 px-3 font-mono text-white font-medium">svc_backup</td>
+                <td class="py-2.5 px-3">
+                  <div class="font-medium text-white truncate max-w-[200px]">Kerberos Golden Ticket Anomaly</div>
+                  <div class="text-[11px] text-[#94A3B8] truncate max-w-[200px]">Unusual privilege grant outside domain baseline</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E53935]/20 text-[#EF5350] border border-[#E53935]/40 uppercase tracking-wide">Critical</span>
+                </td>
+                <td class="py-2.5 px-3 font-mono text-[#EF5350] font-bold text-center">94</td>
+                <td class="py-2.5 px-3">
+                  <span class="inline-flex items-center gap-1 text-[11px] font-mono text-[#F5A623]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#F5A623]"></span>
+                    <span>Investigating</span>
+                  </span>
+                </td>
+              </tr>
+
+              <!-- Alert 2 -->
+              <tr class="hover:bg-[#151B24] cursor-pointer transition-colors">
+                <td class="py-2.5 px-3">
+                  <div class="font-mono text-[#00A3E0]">ALT-9401</div>
+                  <div class="text-[10px] font-mono text-[#94A3B8]">15:22:45 UTC</div>
+                </td>
+                <td class="py-2.5 px-3 font-mono text-[#CBD5E1]">jdoe@corp</td>
+                <td class="py-2.5 px-3">
+                  <div class="font-medium text-white truncate max-w-[200px]">Impossible Travel Velocity</div>
+                  <div class="text-[11px] text-[#94A3B8] truncate max-w-[200px]">Logins from NYC &amp; Frankfurt in 12m</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[#F58220]/20 text-[#FB923C] border border-[#F58220]/40 uppercase tracking-wide">High</span>
+                </td>
+                <td class="py-2.5 px-3 font-mono text-[#FB923C] font-bold text-center">78</td>
+                <td class="py-2.5 px-3">
+                  <span class="inline-flex items-center gap-1 text-[11px] font-mono text-[#CBD5E1]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#CBD5E1]"></span>
+                    <span>Open</span>
+                  </span>
+                </td>
+              </tr>
+
+              <!-- Alert 3 -->
+              <tr class="hover:bg-[#151B24] cursor-pointer transition-colors">
+                <td class="py-2.5 px-3">
+                  <div class="font-mono text-[#00A3E0]">ALT-9399</div>
+                  <div class="text-[10px] font-mono text-[#94A3B8]">14:55:01 UTC</div>
+                </td>
+                <td class="py-2.5 px-3 font-mono text-[#CBD5E1]">dchen@corp</td>
+                <td class="py-2.5 px-3">
+                  <div class="font-medium text-white truncate max-w-[200px]">Off-Hours S3 Bucket Bulk Dump</div>
+                  <div class="text-[11px] text-[#94A3B8] truncate max-w-[200px]">Transferred 48.2 GB outside regular hours</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[#F58220]/20 text-[#FB923C] border border-[#F58220]/40 uppercase tracking-wide">High</span>
+                </td>
+                <td class="py-2.5 px-3 font-mono text-[#FB923C] font-bold text-center">72</td>
+                <td class="py-2.5 px-3">
+                  <span class="inline-flex items-center gap-1 text-[11px] font-mono text-[#CBD5E1]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#CBD5E1]"></span>
+                    <span>Open</span>
+                  </span>
+                </td>
+              </tr>
+
+              <!-- Alert 4 -->
+              <tr class="hover:bg-[#151B24] cursor-pointer transition-colors">
+                <td class="py-2.5 px-3">
+                  <div class="font-mono text-[#00A3E0]">ALT-9390</div>
+                  <div class="text-[10px] font-mono text-[#94A3B8]">14:10:30 UTC</div>
+                </td>
+                <td class="py-2.5 px-3 font-mono text-[#CBD5E1]">mturner@corp</td>
+                <td class="py-2.5 px-3">
+                  <div class="font-medium text-white truncate max-w-[200px]">Consecutive Failed Password Sprays</div>
+                  <div class="text-[11px] text-[#94A3B8] truncate max-w-[200px]">8 authentication rejections in 2 minutes</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[#F5A623]/20 text-[#FBBF24] border border-[#F5A623]/40 uppercase tracking-wide">Medium</span>
+                </td>
+                <td class="py-2.5 px-3 font-mono text-[#FBBF24] font-bold text-center">54</td>
+                <td class="py-2.5 px-3">
+                  <span class="inline-flex items-center gap-1 text-[11px] font-mono text-[#10B981]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+                    <span>Resolved</span>
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination & Page Size -->
+        <div class="p-2 border-t border-[#2A313D] bg-[#0D1117] flex items-center justify-between text-[11px] text-[#94A3B8] font-mono">
+          <div>Showing 1 - 4 of 128 alerts</div>
+          <div class="flex items-center gap-2">
+            <button class="px-2 py-0.5 rounded bg-[#151B24] border border-[#2A313D] text-[#64748B] cursor-not-allowed">Previous</button>
+            <span class="text-white font-bold">1 / 32</span>
+            <button class="px-2 py-0.5 rounded bg-[#151B24] border border-[#2A313D] text-[#CBD5E1] hover:text-white">Next</button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Pane: Dedicated Alert Investigation View (Requirement 7) -->
+      <section class="w-5/12 flex flex-col overflow-y-auto bg-[#0B0F14]">
+        
+        <!-- Investigation Header & Action Command Bar -->
+        <div class="p-3.5 border-b border-[#2A313D] bg-[#151B24]">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#E53935]/20 text-[#EF5350] border border-[#E53935]/40 uppercase">Critical Severity</span>
+              <span class="text-white font-mono font-bold text-[14px]">ALT-9402</span>
+            </div>
+            
+            <!-- Quick Actions: Mark Investigating, Resolve, Reopen -->
+            <div class="flex items-center gap-1.5">
+              <button class="px-2.5 py-1 rounded bg-[#F58220] hover:bg-[#D96814] text-black font-semibold text-[11px] flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">visibility</span>
+                <span>Mark Investigating</span>
+              </button>
+              <button class="px-2.5 py-1 rounded bg-[#10B981]/20 hover:bg-[#10B981]/30 text-[#34D399] border border-[#10B981]/40 font-semibold text-[11px] flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                <span>Resolve Alert</span>
+              </button>
+            </div>
+          </div>
+
+          <h3 class="text-[16px] font-bold text-white tracking-tight leading-snug">Kerberos Golden Ticket Anomaly</h3>
+          <p class="text-[12px] text-[#94A3B8] mt-1">Detection rule ID: <span class="font-mono text-[#CBD5E1]">UEBA-RULE-KRB-094</span> • Generated by Behavioral Deviation Engine</p>
+        </div>
+
+        <div class="p-4 space-y-4">
+          
+          <!-- Key Metrics Quad Panel -->
+          <div class="grid grid-cols-3 gap-2.5">
+            <div class="bg-[#151B24] border border-[#2A313D] rounded p-2.5">
+              <span class="text-[10px] text-[#94A3B8] uppercase font-mono font-semibold">User Risk Score</span>
+              <div class="text-[20px] font-bold text-[#EF5350] font-mono mt-0.5">94 <span class="text-[11px] font-normal text-[#94A3B8]">/ 100</span></div>
+            </div>
+            <div class="bg-[#151B24] border border-[#2A313D] rounded p-2.5">
+              <span class="text-[10px] text-[#94A3B8] uppercase font-mono font-semibold">Affected Entity</span>
+              <div class="text-[13px] font-bold text-white font-mono mt-1 truncate">svc_backup</div>
+            </div>
+            <div class="bg-[#151B24] border border-[#2A313D] rounded p-2.5">
+              <span class="text-[10px] text-[#94A3B8] uppercase font-mono font-semibold">Source IP</span>
+              <div class="text-[13px] font-bold text-[#00A3E0] font-mono mt-1">10.142.12.89</div>
+            </div>
+          </div>
+
+          <!-- Detection Explanation -->
+          <div class="bg-[#151B24] border border-[#2A313D] rounded p-3">
+            <h4 class="text-[12px] font-bold uppercase tracking-wider text-[#F58220] flex items-center gap-1.5 mb-1.5">
+              <span class="material-symbols-outlined text-[16px]">psychology</span>
+              <span>Behavioral Detection Explanation</span>
+            </h4>
+            <p class="text-[12px] text-[#CBD5E1] leading-relaxed">
+              The service account <span class="font-mono text-white bg-[#0D1117] px-1 rounded">svc_backup</span> requested a Ticket Granting Service (TGS) with an abnormally high encryption parameter and lifetime exceeding 10 hours. This user&#39;s 30-day baseline restricts authentications to internal storage subnets (10.10.x.x) exclusively between 01:00 - 05:00 UTC.
+            </p>
+            <div class="mt-2 text-[11px] font-mono bg-[#0D1117] border border-[#2A313D] p-2 rounded text-[#94A3B8] space-y-0.5">
+              <div>&gt; Baseline Variance: <span class="text-[#EF5350] font-bold">+820% standard deviation</span></div>
+              <div>&gt; Cipher: AES256-CTS-HMAC-SHA1-96 (Downgrade bypass attempted)</div>
+            </div>
+          </div>
+
+          <!-- Associated Security Event Details -->
+          <div class="bg-[#151B24] border border-[#2A313D] rounded p-3">
+            <h4 class="text-[12px] font-bold uppercase tracking-wider text-[#00A3E0] flex items-center gap-1.5 mb-2">
+              <span class="material-symbols-outlined text-[16px]">dataset</span>
+              <span>Associated Security Event</span>
+            </h4>
+            <div class="font-mono text-[11px] space-y-1 bg-[#0D1117] p-2.5 rounded border border-[#2A313D] text-[#CBD5E1]">
+              <div class="flex justify-between"><span class="text-[#64748B]">event_id:</span> <span class="text-white">EVT-89412</span></div>
+              <div class="flex justify-between"><span class="text-[#64748B]">timestamp:</span> <span>2026-11-03T15:38:12.441Z</span></div>
+              <div class="flex justify-between"><span class="text-[#64748B]">event_type:</span> <span class="text-[#F58220]">PRIVILEGE_ESCALATION_TGS</span></div>
+              <div class="flex justify-between"><span class="text-[#64748B]">destination_host:</span> <span>dc01.corp.internal</span></div>
+              <div class="flex justify-between"><span class="text-[#64748B]">service_name:</span> <span>krbtgt/CORP.INTERNAL</span></div>
+            </div>
+          </div>
+
+          <!-- Investigation Timeline -->
+          <div class="bg-[#151B24] border border-[#2A313D] rounded p-3">
+            <h4 class="text-[12px] font-bold uppercase tracking-wider text-white flex items-center gap-1.5 mb-2">
+              <span class="material-symbols-outlined text-[16px] text-[#F58220]">timeline</span>
+              <span>Investigation Timeline</span>
+            </h4>
+            <div class="border-l border-[#2A313D] ml-2 pl-3 space-y-3 text-[12px]">
+              <div>
+                <div class="text-[10px] font-mono text-[#94A3B8]">15:38:12 UTC</div>
+                <div class="font-medium text-white">Alert Generated (Risk 94)</div>
+                <div class="text-[11px] text-[#94A3B8]">Automatic trigger from Kerberos Baseline Engine.</div>
+              </div>
+              <div>
+                <div class="text-[10px] font-mono text-[#94A3B8]">15:39:00 UTC</div>
+                <div class="font-medium text-white">Status updated to Investigating</div>
+                <div class="text-[11px] text-[#94A3B8]">Claimed by analyst <span class="text-[#00A3E0] font-mono">s.analyst</span>.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Analyst Feedback Submission Form (Requirement 9 & 7) -->
+          <div class="bg-[#151B24] border border-[#2A313D] rounded p-3">
+            <h4 class="text-[12px] font-bold uppercase tracking-wider text-white flex items-center gap-1.5 mb-2">
+              <span class="material-symbols-outlined text-[16px] text-[#00A3E0]">rate_review</span>
+              <span>Submit Analyst Feedback &amp; Model Tuning</span>
+            </h4>
+            
+            <div class="space-y-2.5">
+              <div>
+                <label class="block text-[11px] text-[#94A3B8] uppercase font-semibold mb-1">Feedback Category</label>
+                <select class="w-full bg-[#0D1117] border border-[#2A313D] text-[12px] text-[#F1F5F9] rounded p-1.5 font-sans focus:outline-none focus:border-[#F58220]">
+                  <option>True Positive – Legitimate Threat / Compromise</option>
+                  <option>False Positive – Scheduled Maintenance Script</option>
+                  <option>Suspicious – Require Baseline Adjustment</option>
+                  <option>Benign Administrative Activity</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-[11px] text-[#94A3B8] uppercase font-semibold mb-1">Analyst Notes &amp; Rationale</label>
+                <textarea rows="2" placeholder="Record investigative findings, ticketing links, and justification..." class="w-full bg-[#0D1117] border border-[#2A313D] text-[12px] text-[#F1F5F9] rounded p-2 focus:outline-none focus:border-[#F58220] placeholder-[#64748B]">Verified with Infrastructure lead: no planned backup window at 15:38 UTC. Isolating host 10.142.12.89.</textarea>
+              </div>
+
+              <div class="flex items-center justify-between pt-1">
+                <span class="text-[10px] text-[#10B981] font-mono flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[14px]">check</span>
+                  <span>Previous feedback synchronized</span>
+                </span>
+                <button class="px-3 py-1.5 bg-[#F58220] hover:bg-[#D96814] text-black font-semibold text-[11px] rounded transition-colors">
+                  Submit Feedback
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+
+
+</body></html>
