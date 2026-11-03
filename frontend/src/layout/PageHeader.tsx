@@ -19,7 +19,7 @@ const PAGE_META: Record<WorkspacePage, { eyebrow: string; title: string; descrip
   analytics: {
     eyebrow: "DETECTION / BEHAVIORAL ANALYTICS",
     title: "User Analytics",
-    description: "Manage user baselines and investigate events with the rule-based engine.",
+    description: "Inspect observed user activity, saved behavioral baselines, and rule-based event analysis.",
   },
 };
 

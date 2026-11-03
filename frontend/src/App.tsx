@@ -5,7 +5,7 @@ import { PageHeader } from "./layout/PageHeader";
 import { OverviewFeature } from "./features/overview/OverviewFeature";
 import { AlertsFeature } from "./features/alerts/AlertsFeature";
 import { EventsFeature } from "./features/events/EventsFeature";
-import { AnalyticsFeature } from "./features/analytics/AnalyticsFeature";
+import { UserAnalyticsFeature } from "./features/analytics/UserAnalyticsFeature";
 import { errorMessage } from "./lib/format";
 import "./App.css";
 
@@ -74,7 +74,7 @@ function App() {
         {activePage === "overview" && <OverviewFeature refreshToken={refreshToken} onDataChanged={refreshWorkspace} onNavigateToAlerts={() => setActivePage("alerts")} onNavigateToEvents={() => setActivePage("events")} />}
         {activePage === "alerts" && <AlertsFeature mode="alerts" refreshToken={refreshToken} />}
         {activePage === "events" && <EventsFeature refreshToken={refreshToken} onAnalyzeEvent={navigateToAnalysis} />}
-        {activePage === "analytics" && <AnalyticsFeature initialEventId={initialEventId} onAnalysisComplete={refreshWorkspace} />}
+        {activePage === "analytics" && <UserAnalyticsFeature initialEventId={initialEventId} onAnalysisComplete={refreshWorkspace} />}
 
         <footer className="app-footer"><span>UEBA SECURITY PLATFORM</span><span className="footer-separator">/</span><span>RULE-BASED DETECTION</span><span className="footer-separator">/</span><span>Refresh interval: 15 seconds</span></footer>
       </main>
