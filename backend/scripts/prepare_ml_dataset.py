@@ -72,6 +72,13 @@ def main(argv: list[str] | None = None) -> int:
     if not database_url.startswith("postgresql"):
         print("DATABASE_URL must use PostgreSQL for read-only transaction enforcement.", file=sys.stderr)
         return 2
+    environment = os.environ.get("ENVIRONMENT", "").strip().lower()
+    if environment not in {"development", "test"} or settings.environment.lower() != environment:
+        print(
+            "Set ENVIRONMENT explicitly to development or test for offline snapshot preparation.",
+            file=sys.stderr,
+        )
+        return 2
 
     hmac_secret = os.environ.get("UEBA_SNAPSHOT_HMAC_KEY", "")
     secret_bytes = hmac_secret.encode("utf-8")
@@ -83,7 +90,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     key_id = os.environ.get("UEBA_SNAPSHOT_HMAC_KEY_ID", "local-v1")
     try:
-        options = SnapshotOptions(args.cutoff, secret_bytes, key_id)
+        options = SnapshotOptions(
+            args.cutoff,
+            secret_bytes,
+            key_id,
+            environment,
+        )
         events = _read_events_read_only(database_url, args.cutoff)
         summary = write_snapshot(events, options, args.output_dir)
     except ValueError as exc:

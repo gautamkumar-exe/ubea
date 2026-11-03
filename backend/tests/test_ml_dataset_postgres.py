@@ -178,6 +178,7 @@ def test_postgres_rejects_malformed_timestamp_without_persisting_a_row(isolated_
 def _run_cli(database_url: str, output_dir: Path, *, secret: str | None, key_id: str = TEST_KEY_ID, cutoff: str = "2026-09-01T09:00:00Z"):
     env = os.environ.copy()
     env["DATABASE_URL"] = database_url
+    env["ENVIRONMENT"] = "test"
     env.pop("UEBA_SNAPSHOT_HMAC_KEY", None)
     if secret is not None:
         env["UEBA_SNAPSHOT_HMAC_KEY"] = secret
@@ -236,6 +237,7 @@ def test_cli_snapshot_schema_privacy_features_quality_splits_and_determinism(iso
     assert TEST_KEY not in exported
 
     manifest = json.loads((first_dir / "manifest.json").read_text())
+    assert manifest["source_environment"] == "test"
     assert manifest["records_processed"] == 7
     assert manifest["records_in_snapshot"] == 7
     assert manifest["invalid_feature_values"] == 1
@@ -279,8 +281,24 @@ def test_cli_fails_closed_for_missing_database_or_hmac_key(isolated_postgres, tm
     assert invalid_key_id.returncode == 2
     assert "Invalid snapshot configuration" in invalid_key_id.stderr
 
+    invalid_environment = os.environ.copy()
+    invalid_environment["DATABASE_URL"] = database_url
+    invalid_environment["ENVIRONMENT"] = "production"
+    invalid_environment["UEBA_SNAPSHOT_HMAC_KEY"] = TEST_KEY.decode("latin-1")
+    forbidden_environment = subprocess.run(
+        [sys.executable, "-m", "scripts.prepare_ml_dataset", "--cutoff", "2026-09-01T09:00:00Z", "--output-dir", str(tmp_path / "production")],
+        cwd=BACKEND_ROOT,
+        env=invalid_environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert forbidden_environment.returncode == 2
+    assert "development or test" in forbidden_environment.stderr
+
     env = os.environ.copy()
     env["DATABASE_URL"] = ""
+    env["ENVIRONMENT"] = "test"
     env["UEBA_SNAPSHOT_HMAC_KEY"] = TEST_KEY.decode("latin-1")
     missing_database = subprocess.run(
         [sys.executable, "-m", "scripts.prepare_ml_dataset", "--cutoff", "2026-09-01T09:00:00Z", "--output-dir", str(tmp_path / "missing-db")],

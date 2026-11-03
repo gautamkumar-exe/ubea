@@ -42,7 +42,9 @@ The default output is `backend/data/ml_snapshots/<snapshot_id>/`, which is ignor
 - `manifest.json`: snapshot/version provenance, cutoff, counts, missingness, validity, privacy summary, feature names, unavailable capabilities, and label availability.
 - `splits.json`: chronological train/validation/test cutoff and record-count manifest.
 
-The snapshot ID is a SHA-256 digest of the feature-schema version, non-secret key ID, cutoff, and sanitized CSV bytes. It is deterministic for the same source records, cutoff, key ID, and HMAC key. Local output directories outside the ignored default path should be protected and excluded from source control by the operator.
+The snapshot ID is a SHA-256 digest of the feature-schema version, non-secret key ID, source environment, cutoff, and sanitized CSV bytes. The snapshot CLI requires `ENVIRONMENT` explicitly set to `development` or `test` and stores that value in the manifest. It refuses other environments. The digest is deterministic for the same source records, cutoff, environment, key ID, and HMAC key. Local output directories outside the ignored default path should be protected and excluded from source control by the operator.
+
+The environment field is provenance metadata, not a cryptographic attestation of the database endpoint. Keep the backend environment setting accurate. The training CLI also requires an explicit `--confirm-nonproduction` acknowledgement and refuses manifests marked `production` or `unclassified`.
 
 ## Read-only source behavior
 

@@ -32,6 +32,7 @@ class SnapshotOptions:
     cutoff: datetime
     hmac_key: bytes
     key_id: str = "local-v1"
+    source_environment: str = "unclassified"
 
     def __post_init__(self) -> None:
         if not _aware(self.cutoff):
@@ -42,6 +43,10 @@ class SnapshotOptions:
             r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", self.key_id
         ):
             raise ValueError("HMAC key ID must be 1-64 safe ASCII characters")
+        if not isinstance(self.source_environment, str) or not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", self.source_environment
+        ):
+            raise ValueError("source environment must be 1-64 safe ASCII characters")
 
 
 def _aware(value: object) -> bool:
@@ -285,6 +290,8 @@ def build_snapshot(events: Iterable[object], options: SnapshotOptions) -> tuple[
             + "\0"
             + options.key_id
             + "\0"
+            + options.source_environment.lower()
+            + "\0"
             + cutoff.isoformat()
             + "\0"
         ).encode()
@@ -295,6 +302,7 @@ def build_snapshot(events: Iterable[object], options: SnapshotOptions) -> tuple[
         "snapshot_version": "1",
         "pipeline_version": "offline-dataset-snapshot-v1",
         "pseudonymization_key_id": options.key_id,
+        "source_environment": options.source_environment.lower(),
         "feature_schema_version": FEATURE_SCHEMA_VERSION,
         "source_model": "app.models.security_event.SecurityEvent",
         "source_selection": "security_events where event_time <= inclusive cutoff; ordered by event_time and primary key",

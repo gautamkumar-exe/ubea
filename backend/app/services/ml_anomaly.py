@@ -25,14 +25,17 @@ class MLAnomalyDetector:
 
     contamination: float = 0.05
     random_state: int = 42
+    n_estimators: int = 100
 
     def __post_init__(self) -> None:
         if not 0 < self.contamination <= 0.5:
             raise ValueError("contamination must be in (0, 0.5]")
+        if self.n_estimators < 1:
+            raise ValueError("n_estimators must be at least 1")
 
         self.scaler = StandardScaler()
         self.model = IsolationForest(
-            n_estimators=100,
+            n_estimators=self.n_estimators,
             contamination=self.contamination,
             random_state=self.random_state,
         )
