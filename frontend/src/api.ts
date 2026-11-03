@@ -8,6 +8,14 @@ export type AlertStatus =
   | "resolved"
   | "dismissed";
 
+export type AlertSeverity = "critical" | "high" | "medium" | "low";
+
+export interface AlertListFilters {
+  status?: AlertStatus;
+  severity?: AlertSeverity;
+  user_id?: string;
+}
+
 export type FeedbackVerdict =
   | "true_positive"
   | "false_positive"
@@ -128,8 +136,17 @@ export function getHealth(): Promise<HealthResponse> {
   return request<HealthResponse>("/health");
 }
 
-export function getAlerts(limit = 100, offset = 0): Promise<AlertListResponse> {
-  return request<AlertListResponse>(`/alerts?limit=${limit}&offset=${offset}`);
+export function getAlerts(
+  limit = 100,
+  offset = 0,
+  filters: AlertListFilters = {},
+  signal?: AbortSignal,
+): Promise<AlertListResponse> {
+  const query = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (filters.status) query.set("status", filters.status);
+  if (filters.severity) query.set("severity", filters.severity);
+  if (filters.user_id?.trim()) query.set("user_id", filters.user_id.trim());
+  return request<AlertListResponse>(`/alerts?${query.toString()}`, { signal });
 }
 
 export function getEvents(params: {
@@ -190,9 +207,11 @@ export function updateAlertStatus(
 
 export function getAlertFeedback(
   alertId: string,
+  signal?: AbortSignal,
 ): Promise<FeedbackListResponse> {
   return request<FeedbackListResponse>(
     `/alerts/${encodeURIComponent(alertId)}/feedback`,
+    { signal },
   );
 }
 
